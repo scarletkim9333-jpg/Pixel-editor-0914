@@ -1,0 +1,5 @@
+{
+  "name": "Copy of pixel Editor ->0914",
+  "description": "An intuitive image editing application powered by Google's Gemini 2.5 Flash Image model. Upload a main image, add optional reference images, and use powerful presets and creative controls to generate stunning new visuals.",
+  "requestFramePermissions": []
+}
