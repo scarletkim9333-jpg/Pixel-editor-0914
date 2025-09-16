@@ -12,7 +12,10 @@ import * as historyService from './services/historyService';
 import { fileToDataURL, dataURLtoFile } from './utils';
 import type { GenerateImageRequest, TokenUsage, HistoryItem, Preset, AspectRatio, ModelId, Resolution } from './types';
 import { useTranslations } from './contexts/LanguageContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import type { Translation } from './translations';
+import TokenBalance from './src/components/TokenBalance';
+import { useTokens } from './src/lib/tokenApi';
 
 
 const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
@@ -30,8 +33,10 @@ const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => voi
 );
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { user, signInWithGoogle, signOut } = useAuth();
   const { language, setLanguage, t } = useTranslations();
+  const { balance, useTokens, loading: tokenLoading } = useTokens();
   const [images, setImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +45,6 @@ const App: React.FC = () => {
   const [sessionTokenUsage, setSessionTokenUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
   const [isDrawingCanvasOpen, setIsDrawingCanvasOpen] = useState(false);
   const [skeletonCount, setSkeletonCount] = useState(1);
-  const [user, setUser] = useState<object | null>(null);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // State for Controls (lifted up)
@@ -129,13 +133,21 @@ const App: React.FC = () => {
     };
   }, [isHelpModalOpen, isDrawingCanvasOpen]);
 
-  const handleLogin = () => {
-    // This is a placeholder for a real Google Sign-In flow
-    setUser({ name: 'Test User' });
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Login failed:', error);
+      setError(t.errorLogin || 'Login failed');
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
   
   const handleGenerate = useCallback(async () => {
@@ -158,6 +170,13 @@ const App: React.FC = () => {
       setError(t.errorMainImage);
       return;
     }
+
+    // 토큰 잔액 확인 (이미지당 10토큰)
+    const tokensRequired = numberOfOutputs * 10;
+    if (balance === null || balance < tokensRequired) {
+      setError(`토큰이 부족합니다. ${tokensRequired}토큰이 필요합니다.`);
+      return;
+    }
     
     isCancelledRef.current = false;
     setIsLoading(true);
@@ -175,8 +194,11 @@ const App: React.FC = () => {
 
 
     try {
+      // 토큰 차감
+      await useTokens(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
+
       const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
-      
+
       if (isCancelledRef.current) {
         console.log("Generation was cancelled. Ignoring results.");
         return;
@@ -217,7 +239,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, mainImage, referenceImages, prompt, creativity, selectedPresets, numberOfOutputs, selectedPresetOptionIds, model, aspectRatio, resolution, loadHistory, t]);
+  }, [user, mainImage, referenceImages, prompt, creativity, selectedPresets, numberOfOutputs, selectedPresetOptionIds, model, aspectRatio, resolution, loadHistory, t, balance, useTokens]);
 
   const handleSuggestion = useCallback(async (currentPrompt: string): Promise<string> => {
     if (!user) {
@@ -306,22 +328,26 @@ const App: React.FC = () => {
                 <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
               </h1>
             </div>
-            <div className="flex items-center space-x-1">
-               <button
-                  onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
-                  className="py-1 px-3 text-sm font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors whitespace-nowrap"
-                  aria-label={t.languageToggle}
+            <div className="flex items-center space-x-4">
+              {/* 토큰 잔액 표시 */}
+              {user && <TokenBalance />}
+
+              <div className="flex items-center space-x-1">
+                <button
+                    onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
+                    className="py-1 px-3 text-sm font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors whitespace-nowrap"
+                    aria-label={t.languageToggle}
+                  >
+                    {language === 'ko' ? 'English' : '한국어'}
+                  </button>
+                 <button
+                  onClick={() => setIsHelpModalOpen(true)}
+                  className="flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
+                  aria-label={t.help}
                 >
-                  {language === 'ko' ? 'English' : '한국어'}
+                  <QuestionMarkCircleIcon className="w-6 h-6" />
                 </button>
-               <button
-                onClick={() => setIsHelpModalOpen(true)}
-                className="flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                aria-label={t.help}
-              >
-                <QuestionMarkCircleIcon className="w-6 h-6" />
-              </button>
-              {user ? (
+                {user ? (
                 <button
                   onClick={handleLogout}
                   className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
@@ -335,15 +361,16 @@ const App: React.FC = () => {
                   </span>
                 </button>
               ) : (
-                <button
-                  onClick={handleLogin}
-                  className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                  aria-label={t.login}
-                >
-                  <span className="text-xl" role="img" aria-hidden="true">🔑</span>
-                  <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#FDF6E3]" />
-                </button>
-              )}
+                  <button
+                    onClick={handleLogin}
+                    className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
+                    aria-label={t.login}
+                  >
+                    <span className="text-xl" role="img" aria-hidden="true">🔑</span>
+                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#FDF6E3]" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -444,6 +471,14 @@ const App: React.FC = () => {
         onClose={() => setIsHelpModalOpen(false)}
       />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

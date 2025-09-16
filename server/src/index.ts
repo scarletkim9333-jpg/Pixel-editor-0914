@@ -1,15 +1,17 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth';
 import paymentRoutes from './routes/payment';
 import generationRoutes from './routes/generation';
-
-dotenv.config();
+import userRoutes from './routes/user';
+import tokenRoutes from './routes/tokens';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +33,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/generation', generationRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/tokens', tokenRoutes);
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
