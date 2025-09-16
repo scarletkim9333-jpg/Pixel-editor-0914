@@ -3,7 +3,166 @@ import { supabase } from '../lib/supabase';
 import { authMiddleware } from '../middleware/auth';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 
+// 토큰 패키지 정의
+const TOKEN_PACKAGES = [
+  {
+    id: 'basic',
+    name: '기본',
+    tokens: 100,
+    price: 1000,
+    pricePerToken: 10,
+    popular: false,
+  },
+  {
+    id: 'popular',
+    name: '인기',
+    tokens: 550,
+    price: 5000,
+    pricePerToken: 9.1,
+    popular: true,
+    discount: 9,
+  },
+  {
+    id: 'recommended',
+    name: '추천',
+    tokens: 1200,
+    price: 10000,
+    pricePerToken: 8.3,
+    popular: false,
+    discount: 17,
+  },
+  {
+    id: 'premium',
+    name: '프리미엄',
+    tokens: 3000,
+    price: 20000,
+    pricePerToken: 6.7,
+    popular: false,
+    discount: 33,
+  },
+];
+
+/**
+ * 안전한 토큰 차감 로직 (트랜잭션 기반)
+ */
+async function safeTokenDeduction(
+  userId: string,
+  amount: number,
+  description: string,
+  apiCall: () => Promise<any>
+): Promise<{ success: boolean; result?: any; error?: string; tokensRefunded?: boolean }> {
+  try {
+    // 1. 잔액 확인
+    const { data: currentTokens, error: balanceError } = await supabase
+      .from('user_tokens')
+      .select('balance')
+      .eq('user_id', userId)
+      .single();
+
+    if (balanceError || !currentTokens) {
+      throw new Error('Failed to check token balance');
+    }
+
+    if (currentTokens.balance < amount) {
+      return {
+        success: false,
+        error: `Insufficient tokens. Required: ${amount}, Available: ${currentTokens.balance}`
+      };
+    }
+
+    // 2. 토큰 차감 (트랜잭션)
+    const { data: deductionResult, error: deductionError } = await supabase
+      .rpc('use_tokens', {
+        p_user_id: userId,
+        p_amount: amount
+      });
+
+    if (deductionError || !deductionResult) {
+      throw new Error('Failed to deduct tokens');
+    }
+
+    // 3. 사용 내역 기록
+    const { error: transactionError } = await supabase
+      .from('token_transactions')
+      .insert({
+        user_id: userId,
+        amount: -amount,
+        type: 'usage',
+        description
+      });
+
+    if (transactionError) {
+      console.error('Failed to record transaction:', transactionError);
+    }
+
+    try {
+      // 4. API 호출 실행
+      const result = await apiCall();
+
+      return {
+        success: true,
+        result
+      };
+
+    } catch (apiError) {
+      console.error('API call failed, attempting token refund:', apiError);
+
+      // 5. API 실패시 토큰 환불 시도
+      try {
+        const { data: refundResult, error: refundError } = await supabase
+          .rpc('add_tokens', {
+            p_user_id: userId,
+            p_amount: amount,
+            p_type: 'refund',
+            p_description: `환불: ${description} (API 실패)`,
+            p_reference_id: null
+          });
+
+        if (!refundError && refundResult) {
+          return {
+            success: false,
+            error: apiError instanceof Error ? apiError.message : 'API call failed',
+            tokensRefunded: true
+          };
+        }
+      } catch (refundError) {
+        console.error('Token refund failed:', refundError);
+      }
+
+      return {
+        success: false,
+        error: apiError instanceof Error ? apiError.message : 'API call failed, refund failed',
+        tokensRefunded: false
+      };
+    }
+
+  } catch (error) {
+    console.error('Safe token deduction error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 const router = Router();
+
+// 토큰 가격표 조회
+router.get('/pricing', async (req: Request, res: Response) => {
+  try {
+    res.json({
+      success: true,
+      packages: TOKEN_PACKAGES,
+      freeTokens: {
+        signupBonus: 100,
+        description: '신규 가입시 무료 제공'
+      }
+    });
+  } catch (error) {
+    console.error('Get pricing error:', error);
+    res.status(500).json({ error: 'Failed to get pricing information' });
+  }
+});
 
 // 토큰 초기화 (신규 사용자)
 router.post('/initialize', authMiddleware, async (req: Request, res: Response) => {
@@ -77,8 +236,8 @@ router.post('/initialize', authMiddleware, async (req: Request, res: Response) =
   }
 });
 
-// 현재 토큰 잔액 조회
-router.get('/user/tokens', authMiddleware, async (req: Request, res: Response) => {
+// 토큰 잔액 조회
+router.get('/balance', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -178,7 +337,7 @@ router.post('/user/tokens', authMiddleware, rateLimitMiddleware, async (req: Req
 });
 
 // 토큰 사용 내역 조회
-router.get('/user/tokens/history', authMiddleware, async (req: Request, res: Response) => {
+router.get('/history', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -214,11 +373,22 @@ router.get('/user/tokens/history', authMiddleware, async (req: Request, res: Res
   }
 });
 
-// 토큰 추가 (결제 완료 후)
-router.post('/user/tokens/add', authMiddleware, async (req: Request, res: Response) => {
+// 토큰 구매 처리
+router.post('/purchase', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { amount, type = 'purchase', description = '토큰 구매', referenceId } = req.body;
+    const { packageId, paymentKey, orderId } = req.body;
+
+    // 패키지 정보 확인
+    const selectedPackage = TOKEN_PACKAGES.find(pkg => pkg.id === packageId);
+    if (!selectedPackage) {
+      return res.status(400).json({ error: 'Invalid package ID' });
+    }
+
+    // 결제 검증 로직 추가 가능 (토스페이먼츠 결제 확인)
+
+    const amount = selectedPackage.tokens;
+    const description = `토큰 구매 - ${selectedPackage.name} 패키지`;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -232,9 +402,9 @@ router.post('/user/tokens/add', authMiddleware, async (req: Request, res: Respon
     const { data, error } = await supabase.rpc('add_tokens', {
       p_user_id: userId,
       p_amount: amount,
-      p_type: type,
+      p_type: 'purchase',
       p_description: description,
-      p_reference_id: referenceId
+      p_reference_id: paymentKey
     });
 
     if (error) {
@@ -258,7 +428,10 @@ router.post('/user/tokens/add', authMiddleware, async (req: Request, res: Respon
       success: true,
       addedAmount: amount,
       newBalance: updatedTokens.balance,
-      totalUsed: updatedTokens.total_used
+      totalUsed: updatedTokens.total_used,
+      package: selectedPackage,
+      paymentKey,
+      orderId
     });
 
   } catch (error) {
@@ -266,5 +439,8 @@ router.post('/user/tokens/add', authMiddleware, async (req: Request, res: Respon
     res.status(500).json({ error: 'Failed to add tokens' });
   }
 });
+
+// safeTokenDeduction 함수를 다른 서비스에서 사용할 수 있도록 export
+export { safeTokenDeduction };
 
 export default router;

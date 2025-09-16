@@ -12,6 +12,7 @@ import paymentRoutes from './routes/payment';
 import generationRoutes from './routes/generation';
 import userRoutes from './routes/user';
 import tokenRoutes from './routes/tokens';
+import callbackRoutes from './routes/callback';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,6 +36,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/generation', generationRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/tokens', tokenRoutes);
+app.use('/api/callback', callbackRoutes);
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
