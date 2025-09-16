@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useTokens } from '../lib/tokenApi'
 
 interface TokenBalanceProps {
@@ -17,23 +17,15 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     totalUsed,
     loading,
     error,
-    refreshBalance,
-    initializeTokens
+    refreshBalance
   } = useTokens()
 
   // 사용자 로그인 시 토큰 정보 가져오기
   useEffect(() => {
     if (user && !authLoading) {
-      refreshBalance().catch(async (err) => {
-        // 토큰 정보가 없으면 초기화 시도
-        if (err.message.includes('토큰 정보를 찾을 수 없습니다')) {
-          try {
-            await initializeTokens()
-          } catch (initError) {
-            console.error('토큰 초기화 실패:', initError)
-          }
-        }
-      })
+      refreshBalance().catch((err) => {
+        console.error('토큰 잔액 조회 실패:', err);
+      });
     }
   }, [user, authLoading])
 

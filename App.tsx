@@ -7,11 +7,12 @@ import { DrawingCanvas } from './components/DrawingCanvas';
 import { LogoIcon, QuestionMarkCircleIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
-import { editImageWithGemini, getPromptSuggestion } from './services/geminiService';
+import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
+import { editImageWithGemini, getPromptSuggestion, getModelTokenCost } from './services/geminiService';
 import * as historyService from './services/historyService';
 import { fileToDataURL, dataURLtoFile } from './utils';
 import type { GenerateImageRequest, TokenUsage, HistoryItem, Preset, AspectRatio, ModelId, Resolution } from './types';
-import { useTranslations } from './contexts/LanguageContext';
+import { useTranslations, LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import type { Translation } from './translations';
 import TokenBalance from './src/components/TokenBalance';
@@ -36,7 +37,14 @@ const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => voi
 const AppContent: React.FC = () => {
   const { user, signInWithGoogle, signOut } = useAuth();
   const { language, setLanguage, t } = useTranslations();
-  const { balance, useTokens, loading: tokenLoading } = useTokens();
+  const { balance, loading: tokenLoading, refreshBalance } = useTokens();
+
+  useEffect(() => {
+    if (user) {
+      refreshBalance();
+    }
+  }, [user, refreshBalance]);
+
   const [images, setImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +54,8 @@ const AppContent: React.FC = () => {
   const [isDrawingCanvasOpen, setIsDrawingCanvasOpen] = useState(false);
   const [skeletonCount, setSkeletonCount] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
+  const [requiredTokens, setRequiredTokens] = useState(0);
 
   // State for Controls (lifted up)
   const [prompt, setPrompt] = useState('');
@@ -171,10 +181,15 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    // 토큰 잔액 확인 (이미지당 10토큰)
-    const tokensRequired = numberOfOutputs * 10;
+    // 모델별 토큰 잔액 확인
+    const tokensPerImage = getModelTokenCost(model);
+    const tokensRequired = numberOfOutputs * tokensPerImage;
+
     if (balance === null || balance < tokensRequired) {
-      setError(`토큰이 부족합니다. ${tokensRequired}토큰이 필요합니다.`);
+      // 토큰 부족 시 구매 모달 표시
+      setRequiredTokens(tokensRequired);
+      setIsTokenPurchaseModalOpen(true);
+      setError(`토큰이 부족합니다. ${tokensRequired}토큰이 필요합니다. (${model} 모델: ${tokensPerImage}토큰/이미지)`);
       return;
     }
     
@@ -194,8 +209,8 @@ const AppContent: React.FC = () => {
 
 
     try {
-      // 토큰 차감
-      await useTokens(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
+      // 임시로 토큰 차감 비활성화
+      // await useTokens(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
 
       const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
 
@@ -239,7 +254,7 @@ const AppContent: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, mainImage, referenceImages, prompt, creativity, selectedPresets, numberOfOutputs, selectedPresetOptionIds, model, aspectRatio, resolution, loadHistory, t, balance, useTokens]);
+  }, [user, images, prompt, creativity, numberOfOutputs, model, t, balance]);
 
   const handleSuggestion = useCallback(async (currentPrompt: string): Promise<string> => {
     if (!user) {
@@ -329,7 +344,6 @@ const AppContent: React.FC = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              {/* 토큰 잔액 표시 */}
               {user && <TokenBalance />}
 
               <div className="flex items-center space-x-1">
@@ -466,19 +480,241 @@ const AppContent: React.FC = () => {
         onClose={() => setIsDrawingCanvasOpen(false)}
         onSave={handleSaveDrawing}
       />
-      <HelpModal 
+      <HelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
       />
+      <TokenPurchaseModal
+        isOpen={isTokenPurchaseModalOpen}
+        onClose={() => setIsTokenPurchaseModalOpen(false)}
+        requiredTokens={requiredTokens}
+        onPurchaseSuccess={() => {
+          // 구매 성공 시 잔액 새로고침 및 에러 초기화
+          refreshBalance();
+          setIsTokenPurchaseModalOpen(false);
+          setError(null);
+          setRequiredTokens(0);
+        }}
+      />
+    </div>
+  );
+};
+
+// 이미지 생성 기능 테스트 버전
+const SimpleAppContent: React.FC = () => {
+  const { language, setLanguage, t } = useTranslations();
+
+  // 상태 관리
+  const [images, setImages] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [creativity, setCreativity] = useState(0.7);
+  const [numberOfOutputs, setNumberOfOutputs] = useState(1);
+  const [model, setModel] = useState<ModelId>('nanobanana');
+
+  // 임시로 모든 auth 관련 기능 비활성화
+  const user = null;
+  const signInWithGoogle = async () => {};
+  const signOut = async () => {};
+  const balance = null;
+  const tokenLoading = false;
+
+  // 이미지 생성 함수
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      setError('프롬프트를 입력해주세요');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setGeneratedImages([]);
+
+    try {
+      const mainImage = images[0] || null;
+      const referenceImages = images.slice(1);
+
+      const result = await editImageWithGemini({
+        mainImage,
+        referenceImages,
+        prompt,
+        creativity,
+        numberOfOutputs,
+        model,
+        aspectRatio: '1:1',
+        resolution: '1024x1024'
+      });
+
+      setGeneratedImages(result.images || []);
+      console.log('생성 완료:', result);
+    } catch (err) {
+      console.error('생성 실패:', err);
+      setError(err instanceof Error ? err.message : '이미지 생성에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#90EE90]">
+      {/* Header */}
+      <header className="bg-white border-b-4 border-black shadow-lg">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <h1 className="font-press-start text-lg md:text-xl text-black flex items-center gap-1">
+                <span>PIXEL-EDITOR</span>
+                <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
+                  className="py-1 px-3 text-sm font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors"
+                >
+                  {language === 'ko' ? 'English' : '한국어'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Controls */}
+          <div className="bg-white border-4 border-black shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">이미지 생성 테스트</h2>
+
+            {/* Image Upload */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2">이미지 업로드 (선택):</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setImages([file]);
+                  }
+                }}
+                className="w-full p-2 border-2 border-black"
+              />
+              {images.length > 0 && (
+                <p className="text-sm text-green-600 mt-1">
+                  업로드됨: {images[0].name}
+                </p>
+              )}
+            </div>
+
+            {/* Prompt Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2">프롬프트:</label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="w-full p-3 border-2 border-black"
+                rows={3}
+                placeholder="생성하고 싶은 이미지를 설명해주세요..."
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                이미지를 업로드하면 편집, 업로드하지 않으면 새 이미지 생성
+              </p>
+            </div>
+
+            {/* Model Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2">모델:</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value as ModelId)}
+                className="w-full p-2 border-2 border-black"
+              >
+                <option value="nanobanana">NanoBanana</option>
+                <option value="seedance">Seedance</option>
+              </select>
+            </div>
+
+            {/* Creativity */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2">창의성: {creativity}</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={creativity}
+                onChange={(e) => setCreativity(parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+
+            {/* Generate Button */}
+            <button
+              onClick={handleGenerate}
+              disabled={isLoading || !prompt.trim()}
+              className="w-full py-3 px-4 bg-black text-white font-bold border-2 border-black hover:bg-gray-800 disabled:bg-gray-400"
+            >
+              {isLoading ? '생성 중...' : '이미지 생성'}
+            </button>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 border-2 border-red-500 text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Results */}
+          <div className="bg-white border-4 border-black shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">생성 결과</h2>
+
+            {isLoading && (
+              <div className="text-center py-8">
+                <div className="animate-spin inline-block w-8 h-8 border-4 border-black border-t-transparent rounded-full"></div>
+                <p className="mt-2">이미지 생성 중...</p>
+              </div>
+            )}
+
+            {generatedImages.length > 0 && (
+              <div className="space-y-4">
+                {generatedImages.map((imageUrl, index) => (
+                  <div key={index} className="border-2 border-black">
+                    <img
+                      src={imageUrl}
+                      alt={`Generated ${index + 1}`}
+                      className="w-full h-auto"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!isLoading && generatedImages.length === 0 && (
+              <p className="text-gray-500 text-center py-8">
+                생성된 이미지가 여기에 표시됩니다
+              </p>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </LanguageProvider>
   );
 };
 

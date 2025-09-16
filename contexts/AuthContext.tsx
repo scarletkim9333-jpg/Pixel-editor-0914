@@ -30,16 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 현재 세션 가져오기
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    }
-
-    getSession()
-
+    setLoading(true);
     // 인증 상태 변경 리스너
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {

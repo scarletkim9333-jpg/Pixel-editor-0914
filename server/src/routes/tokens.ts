@@ -440,6 +440,72 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
+// 토큰 패키지 목록 조회 (인증 불필요)
+router.get('/packages', async (req: Request, res: Response) => {
+  try {
+    res.json({
+      success: true,
+      packages: TOKEN_PACKAGES
+    });
+  } catch (error) {
+    console.error('Get packages error:', error);
+    res.status(500).json({ error: 'Failed to get token packages' });
+  }
+});
+
+// 테스트용 엔드포인트 (인증 없이 잔액 조회)
+router.get('/test-balance', async (req: Request, res: Response) => {
+  try {
+    // 테스트 사용자 ID (실제로는 인증에서 가져옴)
+    const testUserId = '00000000-0000-0000-0000-000000000001';
+
+    // 테스트 사용자가 없으면 생성
+    const { data: existingUser, error: selectError } = await supabase
+      .from('user_tokens')
+      .select('*')
+      .eq('user_id', testUserId)
+      .single();
+
+    if (selectError && selectError.code === 'PGRST116') {
+      // 사용자가 없으면 생성
+      const { data: newUser, error: insertError } = await supabase
+        .from('user_tokens')
+        .insert({
+          user_id: testUserId,
+          balance: 100 // 초기 잔액 100 토큰
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Failed to create test user:', insertError);
+        return res.status(500).json({ error: 'Failed to create test user' });
+      }
+
+      return res.json({
+        success: true,
+        balance: newUser.balance,
+        message: 'Test user created with 100 tokens'
+      });
+    }
+
+    if (selectError) {
+      console.error('Database error:', selectError);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    res.json({
+      success: true,
+      balance: existingUser.balance,
+      message: 'Test balance retrieved'
+    });
+
+  } catch (error) {
+    console.error('Test balance error:', error);
+    res.status(500).json({ error: 'Failed to get test balance' });
+  }
+});
+
 // safeTokenDeduction 함수를 다른 서비스에서 사용할 수 있도록 export
 export { safeTokenDeduction };
 

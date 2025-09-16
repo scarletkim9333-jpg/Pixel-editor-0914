@@ -1,153 +1,120 @@
-import { useState } from 'react'
-import { supabase } from './supabase'
+import { useState, useEffect, useCallback } from 'react';
+import { tokenApi } from '../services/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-
-// JWT 토큰 가져오기 함수
-const getAuthToken = async (): Promise<string | null> => {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token || null
-}
-
-// API 요청 헬퍼 함수
-const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const token = await getAuthToken()
-
-  if (!token) {
-    throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.')
-  }
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    },
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `API 요청 실패: ${response.status}`)
-  }
-
-  return response.json()
-}
-
-// 토큰 API 서비스
-export const tokenApi = {
-  // 토큰 초기화 (신규 사용자)
-  initialize: async (): Promise<{
-    success: boolean
-    message: string
-    balance: number
-  }> => {
-    return apiRequest('/tokens/initialize', {
-      method: 'POST',
-    })
-  },
-
-  // 현재 토큰 잔액 조회
-  getBalance: async (): Promise<{
-    success: boolean
-    balance: number
-    totalUsed: number
-  }> => {
-    return apiRequest('/user/tokens', {
-      method: 'GET',
-    })
-  },
-
-  // 토큰 사용 (차감)
-  useTokens: async (usedAmount: number, description?: string): Promise<{
-    success: boolean
-    usedAmount: number
-    remainingBalance: number
-    totalUsed: number
-    description: string
-  }> => {
-    return apiRequest('/user/tokens', {
-      method: 'POST',
-      body: JSON.stringify({ usedAmount, description }),
-    })
-  },
-
-  // 토큰 사용 내역 조회
-  getHistory: async (): Promise<{
-    success: boolean
-    transactions: Array<{
-      id: string
-      user_id: string
-      tokens_used: number
-      description: string
-      created_at: string
-    }>
-  }> => {
-    return apiRequest('/user/tokens/history', {
-      method: 'GET',
-    })
-  },
-}
-
-// 토큰 관련 훅
+/**
+ * 토큰 관련 훅
+ * 새로운 백엔드 API와 연동하여 토큰 잔액, 사용, 구매 기능을 제공합니다.
+ */
 export const useTokens = () => {
-  const [balance, setBalance] = useState<number | null>(null)
-  const [totalUsed, setTotalUsed] = useState<number>(0)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  const [balance, setBalance] = useState<number | null>(null);
+  const [totalUsed, setTotalUsed] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 토큰 잔액 새로고침
-  const refreshBalance = async () => {
-    setLoading(true)
-    setError(null)
+  const refreshBalance = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
     try {
-      const data = await tokenApi.getBalance()
-      setBalance(data.balance)
-      setTotalUsed(data.totalUsed)
+      const data = await tokenApi.getBalance();
+      setBalance(data.balance || 0);
+      setTotalUsed(data.totalUsed || 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '토큰 정보를 가져오는데 실패했습니다')
+      console.error('Token balance fetch error:', err);
+      const errorMessage = err instanceof Error ? err.message : '토큰 정보를 가져오는데 실패했습니다';
+      setError(errorMessage);
+
+      // 인증 오류가 아닌 경우에만 기본값 설정
+      if (!errorMessage.includes('인증') && !errorMessage.includes('401')) {
+        setBalance(0);
+        setTotalUsed(0);
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, []);
+
+  
 
   // 토큰 사용
   const useTokens = async (amount: number, description?: string) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const data = await tokenApi.useTokens(amount, description)
-      setBalance(data.remainingBalance)
-      setTotalUsed(data.totalUsed)
-      return data
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '토큰 사용에 실패했습니다'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
+      // 실제로는 백엔드에서 토큰 차감이 자동으로 처리됩니다
+      // 이 함수는 프론트엔드 상태 동기화용으로만 사용
 
-  // 토큰 초기화 (신규 사용자)
-  const initializeTokens = async () => {
-    setLoading(true)
-    setError(null)
+      // 잔액이 부족한 경우 에러 발생
+      if (balance !== null && balance < amount) {
+        throw new Error(`토큰이 부족합니다. 필요: ${amount}토큰, 현재: ${balance}토큰`);
+      }
+
+      // 토큰 사용 성공 시 로컬 상태 업데이트
+      if (balance !== null) {
+        setBalance(balance - amount);
+        setTotalUsed(prev => prev + amount);
+      }
+
+      return {
+        success: true,
+        usedAmount: amount,
+        remainingBalance: (balance || 0) - amount,
+        totalUsed: totalUsed + amount,
+        description: description || 'Token usage'
+      };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '토큰 사용에 실패했습니다';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 토큰 패키지 목록 조회
+  const getPackages = async () => {
+    try {
+      const data = await tokenApi.getPackages();
+      return data.packages || [];
+    } catch (err) {
+      console.error('Token packages fetch error:', err);
+      throw err;
+    }
+  };
+
+  // 토큰 구매
+  const purchaseTokens = async (packageId: string, paymentData: any) => {
+    setLoading(true);
+    setError(null);
 
     try {
-      const data = await tokenApi.initialize()
-      setBalance(data.balance)
-      return data
+      const data = await tokenApi.purchase(packageId, paymentData);
+
+      // 구매 성공 시 잔액 새로고침
+      await refreshBalance();
+
+      return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '토큰 초기화에 실패했습니다'
-      setError(errorMessage)
-      throw new Error(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : '토큰 구매에 실패했습니다';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  // 토큰 사용 내역 조회
+  const getTokenHistory = async () => {
+    try {
+      const data = await tokenApi.getHistory();
+      return data.transactions || [];
+    } catch (err) {
+      console.error('Token history fetch error:', err);
+      throw err;
+    }
+  };
 
   return {
     balance,
@@ -156,6 +123,8 @@ export const useTokens = () => {
     error,
     refreshBalance,
     useTokens,
-    initializeTokens,
-  }
-}
+    getPackages,
+    purchaseTokens,
+    getTokenHistory,
+  };
+};
