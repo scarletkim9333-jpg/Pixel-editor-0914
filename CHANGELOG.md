@@ -1,3 +1,18 @@
+#  (2025-09-17)
+
+
+### Bug Fixes
+
+* 인증 및 토큰 로직 수정으로 무한 새로고침 루프 해결 ([ef4996c](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/ef4996ca47c4586bf8572e3b08b24cd4db6a6b9b))
+
+
+### Features
+
+* Add user authentication and token management ([ba16d55](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/ba16d5514a42c0ddb181a58c8d906dd20c336e7e))
+* Initialize pixel Editor project with Vite ([2416607](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/24166072d612363b2e2d4533e73b20fb9e9e4828))
+
+
+
 ## 2025-09-17
 
 **오늘의 변경 요약**
