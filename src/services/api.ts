@@ -178,6 +178,11 @@ export const tokenApi = {
   purchase: async (packageId: string, paymentData: any) => {
     return apiRequest.post('/tokens/purchase', { packageId, ...paymentData });
   },
+
+  // 결제 승인 (TossPayments 콜백 처리)
+  confirmPayment: async (paymentData: { paymentKey: string; orderId: string; amount: number }) => {
+    return apiRequest.post('/tokens/confirm-payment', paymentData);
+  },
 };
 
 export const authApi = {

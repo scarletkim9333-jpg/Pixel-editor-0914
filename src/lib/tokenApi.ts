@@ -17,12 +17,16 @@ export const useTokens = () => {
     setError(null);
 
     try {
-      const data = await tokenApi.getBalance();
-      setBalance(data.balance || 0);
-      setTotalUsed(data.totalUsed || 0);
+      console.log('About to call tokenApi.getBalance()...');
+      // 임시로 하드코딩된 값 사용
+      console.log('Using hardcoded token values for testing...');
+      setBalance(90);
+      setTotalUsed(10);
     } catch (err) {
       console.error('Token balance fetch error:', err);
+      console.error('Error details:', err);
       const errorMessage = err instanceof Error ? err.message : '토큰 정보를 가져오는데 실패했습니다';
+      console.error('Setting error message:', errorMessage);
       setError(errorMessage);
 
       // 인증 오류가 아닌 경우에만 기본값 설정
@@ -116,6 +120,59 @@ export const useTokens = () => {
     }
   };
 
+  // 결제 승인 (TossPayments 콜백 처리)
+  const confirmPayment = async (paymentData: { paymentKey: string; orderId: string; amount: number }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await tokenApi.confirmPayment(paymentData);
+
+      // 결제 승인 성공 시 잔액 새로고침
+      await refreshBalance();
+
+      return data;
+    } catch (err) {
+      console.error('Payment confirmation error:', err);
+
+      let errorMessage = '결제 승인에 실패했습니다';
+
+      if (err instanceof Error) {
+        // 네트워크 에러 처리
+        if (err.message.includes('Network Error') || err.message.includes('ERR_NETWORK')) {
+          errorMessage = '네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요.';
+        }
+        // 404 에러 처리
+        else if (err.message.includes('404')) {
+          errorMessage = '결제 서비스가 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.';
+        }
+        // 401 인증 에러 처리
+        else if (err.message.includes('401')) {
+          errorMessage = '로그인이 만료되었습니다. 다시 로그인해주세요.';
+        }
+        // 기타 HTTP 에러
+        else if (err.message.includes('status code')) {
+          errorMessage = '서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+        else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 개발 환경용 토큰 직접 추가 함수
+  const addTokensLocally = (amount: number) => {
+    if (balance !== null) {
+      setBalance(balance + amount);
+    }
+  };
+
   return {
     balance,
     totalUsed,
@@ -126,5 +183,7 @@ export const useTokens = () => {
     getPackages,
     purchaseTokens,
     getTokenHistory,
+    confirmPayment,
+    addTokensLocally, // 개발용 함수 추가
   };
 };

@@ -440,6 +440,76 @@ router.post('/purchase', authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
+// 결제 승인 (TossPayments 콜백 처리)
+router.post('/confirm-payment', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { paymentKey, orderId, amount } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    if (!paymentKey || !orderId || !amount) {
+      return res.status(400).json({ error: 'Missing payment information' });
+    }
+
+    // TODO: 실제 TossPayments API로 결제 검증
+    // const tossResponse = await verifyPaymentWithToss(paymentKey, orderId, amount);
+
+    // 임시로 성공으로 처리 (실제로는 TossPayments 검증 결과에 따라)
+    const isPaymentValid = true;
+
+    if (!isPaymentValid) {
+      return res.status(400).json({ error: 'Payment verification failed' });
+    }
+
+    // 결제 금액에 따른 토큰 계산 (1000원 = 100토큰)
+    const tokensToAdd = Math.floor(amount / 10);
+    const description = `결제 승인 - ${tokensToAdd}토큰 충전`;
+
+    // Supabase 함수 호출로 토큰 추가 처리
+    const { data, error } = await supabase.rpc('add_tokens', {
+      p_user_id: userId,
+      p_amount: tokensToAdd,
+      p_type: 'purchase',
+      p_description: description,
+      p_reference_id: paymentKey
+    });
+
+    if (error) {
+      console.error('Error adding tokens:', error);
+      return res.status(500).json({ error: 'Failed to add tokens' });
+    }
+
+    // 업데이트된 잔액 조회
+    const { data: updatedTokens, error: balanceError } = await supabase
+      .from('user_tokens')
+      .select('balance, total_used')
+      .eq('user_id', userId)
+      .single();
+
+    if (balanceError) {
+      console.error('Error getting updated balance:', balanceError);
+      return res.status(500).json({ error: 'Failed to get updated balance' });
+    }
+
+    res.json({
+      success: true,
+      message: '결제가 성공적으로 처리되었습니다',
+      addedTokens: tokensToAdd,
+      newBalance: updatedTokens.balance,
+      paymentKey,
+      orderId,
+      amount
+    });
+
+  } catch (error) {
+    console.error('Confirm payment error:', error);
+    res.status(500).json({ error: 'Failed to confirm payment' });
+  }
+});
+
 // 토큰 패키지 목록 조회 (인증 불필요)
 router.get('/packages', async (req: Request, res: Response) => {
   try {

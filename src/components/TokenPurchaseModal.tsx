@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { useTokens } from '../lib/tokenApi';
+import { TOKEN_PRICING } from '../constants/pricing';
 
 interface TokenPackage {
   id: string;
@@ -18,13 +20,16 @@ interface TokenPurchaseModalProps {
   onPurchaseSuccess?: () => void;
 }
 
+// TossPayments 클라이언트 키 (환경변수에서 가져오기)
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY || 'test_ck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+
 export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
   isOpen,
   onClose,
   requiredTokens = 0,
   onPurchaseSuccess,
 }) => {
-  const { getPackages, purchaseTokens, loading } = useTokens();
+  const { getPackages, purchaseTokens, addTokensLocally, loading } = useTokens();
   const [packages, setPackages] = useState<TokenPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -35,9 +40,9 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
     }
   }, [isOpen]);
 
-  const loadPackages = async () => {
+  const loadPackages = () => {
     try {
-      const packageList = await getPackages();
+      const packageList = TOKEN_PRICING.PACKAGES;
       setPackages(packageList);
 
       // 필요한 토큰 수에 따라 기본 패키지 선택
@@ -52,39 +57,96 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
     }
   };
 
+  const generateOrderId = () => {
+    return `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const handlePurchase = async () => {
     if (!selectedPackage) return;
 
+    const packageInfo = packages.find(pkg => pkg.id === selectedPackage);
+    if (!packageInfo) return;
+
     setIsProcessing(true);
-    try {
-      // 실제 결제 시스템 연동이 필요합니다 (TossPayments 등)
-      // 현재는 테스트용으로 바로 성공 처리
 
-      // TODO: 실제 결제 처리 로직
-      // const paymentData = {
-      //   orderId: `order_${Date.now()}`,
-      //   amount: selectedPackage.price,
-      //   // ... 기타 결제 정보
-      // };
+    // 개발 환경에서는 시뮬레이션 모드 제공
+    const isDevelopment = import.meta.env.MODE === 'development';
 
-      const mockPaymentData = {
-        orderId: `test_order_${Date.now()}`,
-        paymentKey: `test_payment_${Date.now()}`,
-        status: 'success'
-      };
+    if (isDevelopment) {
+      // 개발 모드: 가짜 결제 성공 시뮬레이션
+      const shouldSimulate = confirm(
+        `💡 개발 환경 감지!\n\n` +
+        `토스페이먼츠 인증 이슈로 인해 결제 시뮬레이션을 제공합니다.\n\n` +
+        `패키지: ${packageInfo.name}\n` +
+        `토큰: ${packageInfo.tokens.toLocaleString()}개\n` +
+        `가격: ${packageInfo.price.toLocaleString()}원\n\n` +
+        `"확인"을 누르면 결제 성공을 시뮬레이션합니다.\n` +
+        `(실제 돈은 빠지지 않습니다)`
+      );
 
-      await purchaseTokens(selectedPackage, mockPaymentData);
+      if (shouldSimulate) {
+        try {
+          // 백엔드 API를 직접 호출하여 토큰 추가
+          const orderId = generateOrderId();
+          const mockPaymentData = {
+            paymentKey: `mock_payment_${Date.now()}`,
+            orderId: orderId,
+            amount: packageInfo.price
+          };
 
-      // 구매 성공 시 콜백 호출
-      if (onPurchaseSuccess) {
-        onPurchaseSuccess();
+          // 개발 환경에서는 로컬 상태만 업데이트 (백엔드 호출 없이)
+          // await purchaseTokens(packageInfo.id, mockPaymentData);
+
+          // 로컬 토큰 잔액 직접 업데이트 (시뮬레이션)
+          console.log('토큰 구매 시뮬레이션:', {
+            packageId: packageInfo.id,
+            tokens: packageInfo.tokens,
+            price: packageInfo.price
+          });
+
+          // 실제로 토큰 잔액 증가
+          addTokensLocally(packageInfo.tokens);
+
+          alert(`✅ 결제 시뮬레이션 성공!\n${packageInfo.tokens.toLocaleString()}토큰이 충전되었습니다.`);
+          onPurchaseSuccess?.();
+          onClose();
+
+        } catch (error) {
+          console.error('Mock payment failed:', error);
+          alert('❌ 시뮬레이션 중 오류가 발생했습니다.');
+        }
       }
 
-      onClose();
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      // 프로덕션 환경: 실제 TossPayments 사용
+      const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+
+      const orderId = generateOrderId();
+
+      // TossPayments 결제 요청
+      await tossPayments.requestPayment('카드', {
+        amount: packageInfo.price,
+        orderId: orderId,
+        orderName: `토큰 ${packageInfo.tokens.toLocaleString()}개`,
+        customerName: '사용자',
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+        metadata: {
+          packageId: packageInfo.id,
+          tokens: packageInfo.tokens.toString(),
+        }
+      });
+
+      // 결제창이 열리면 처리 상태 해제 (결제 완료는 success URL에서 처리)
+      setIsProcessing(false);
+
     } catch (error) {
-      console.error('Purchase failed:', error);
-      alert('토큰 구매에 실패했습니다. 다시 시도해주세요.');
-    } finally {
+      console.error('Payment initialization failed:', error);
+      alert('결제를 시작할 수 없습니다. 다시 시도해주세요.');
       setIsProcessing(false);
     }
   };

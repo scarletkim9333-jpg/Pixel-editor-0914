@@ -8,6 +8,7 @@ import { LogoIcon, QuestionMarkCircleIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
+import { PaymentCallback } from './src/components/PaymentCallback';
 import { editImageWithGemini, getPromptSuggestion, getModelTokenCost } from './services/geminiService';
 import * as historyService from './services/historyService';
 import { fileToDataURL, dataURLtoFile } from './utils';
@@ -37,7 +38,7 @@ const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => voi
 const AppContent: React.FC = () => {
   const { user, signInWithGoogle, signOut } = useAuth();
   const { language, setLanguage, t } = useTranslations();
-  const { balance, loading: tokenLoading, refreshBalance } = useTokens();
+  const { balance, loading: tokenLoading, refreshBalance, useTokens: useTokensFunction } = useTokens();
 
   useEffect(() => {
     if (user) {
@@ -56,6 +57,7 @@ const AppContent: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
   const [requiredTokens, setRequiredTokens] = useState(0);
+  const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
 
   // State for Controls (lifted up)
   const [prompt, setPrompt] = useState('');
@@ -89,6 +91,18 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  // 결제 콜백 URL 처리
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
+
+    if (path === '/payment/success') {
+      setPaymentCallbackType('success');
+    } else if (path === '/payment/fail') {
+      setPaymentCallbackType('fail');
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -185,11 +199,11 @@ const AppContent: React.FC = () => {
     const tokensPerImage = getModelTokenCost(model);
     const tokensRequired = numberOfOutputs * tokensPerImage;
 
+    // 토큰 부족시 명확한 안내
     if (balance === null || balance < tokensRequired) {
-      // 토큰 부족 시 구매 모달 표시
+      setError(`토큰이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
       setRequiredTokens(tokensRequired);
       setIsTokenPurchaseModalOpen(true);
-      setError(`토큰이 부족합니다. ${tokensRequired}토큰이 필요합니다. (${model} 모델: ${tokensPerImage}토큰/이미지)`);
       return;
     }
     
@@ -209,8 +223,8 @@ const AppContent: React.FC = () => {
 
 
     try {
-      // 임시로 토큰 차감 비활성화
-      // await useTokens(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
+      // 토큰 차감
+      await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
 
       const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
 
@@ -248,8 +262,33 @@ const AppContent: React.FC = () => {
     } catch (err) {
       if (!isCancelledRef.current) {
         console.error(err);
-        const errorMessage = err instanceof Error ? err.message : 'errorUnknown';
-        setError(t[errorMessage as keyof Translation] || t.errorUnknown);
+
+        // API 오류시 사용자 친화적 메시지
+        let errorMessage = t.errorUnknown;
+
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as any).response;
+          if (response?.status === 402) {
+            errorMessage = '토큰이 부족합니다. 충전 후 다시 시도해주세요.';
+            setRequiredTokens(numberOfOutputs * getModelTokenCost(model));
+            setIsTokenPurchaseModalOpen(true);
+          } else if (response?.status === 401) {
+            errorMessage = '로그인이 만료되었습니다. 다시 로그인해주세요.';
+          } else if (response?.status >= 500) {
+            errorMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          } else {
+            errorMessage = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          }
+        } else if (err instanceof Error) {
+          // 네트워크 오류 등 처리
+          if (err.message.includes('network') || err.message.includes('Network')) {
+            errorMessage = '네트워크 연결을 확인해주세요.';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
+        setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -496,6 +535,20 @@ const AppContent: React.FC = () => {
           setRequiredTokens(0);
         }}
       />
+      {paymentCallbackType && (
+        <PaymentCallback
+          type={paymentCallbackType}
+          onClose={() => {
+            setPaymentCallbackType(null);
+            // URL을 깨끗하게 정리
+            window.history.replaceState({}, document.title, '/');
+            // 잔액 새로고침
+            if (paymentCallbackType === 'success') {
+              refreshBalance();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

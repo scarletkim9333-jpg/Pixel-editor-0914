@@ -108,4 +108,52 @@ router.get('/orders/:orderId', authMiddleware, async (req: Request, res: Respons
   }
 });
 
+// 토스페이먼츠 웹훅 처리 (인증 불필요)
+router.post('/webhook', async (req: Request, res: Response) => {
+  try {
+    const { status, orderId, amount, paymentKey } = req.body;
+
+    console.log('웹훅 수신:', {
+      status,
+      orderId,
+      amount,
+      paymentKey,
+      timestamp: new Date().toISOString()
+    });
+
+    // 결제 상태에 따른 처리
+    if (status === 'DONE') {
+      // 결제 완료 시 토큰 충전 로직
+      console.log(`결제 완료: 주문번호 ${orderId}, 금액 ${amount}원`);
+
+      // TODO: 실제로는 orderId로 사용자 정보를 찾아서 토큰을 충전해야 함
+      // 현재는 로그만 출력
+      const tokensToAdd = Math.floor(amount / 10); // 10원당 1토큰
+      console.log(`토큰 충전 예정: ${tokensToAdd}토큰`);
+
+      res.status(200).json({
+        success: true,
+        message: '웹훅 처리 완료',
+        tokensToAdd
+      });
+    } else if (status === 'CANCELED') {
+      console.log(`결제 취소: 주문번호 ${orderId}`);
+      res.status(200).json({
+        success: true,
+        message: '결제 취소 웹훅 처리 완료'
+      });
+    } else {
+      console.log(`알 수 없는 상태: ${status}`);
+      res.status(200).json({
+        success: true,
+        message: '웹훅 수신 완료'
+      });
+    }
+
+  } catch (error) {
+    console.error('웹훅 처리 오류:', error);
+    res.status(500).json({ error: '웹훅 처리 실패' });
+  }
+});
+
 export default router;

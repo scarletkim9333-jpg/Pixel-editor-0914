@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTokens } from '../lib/tokenApi'
+import { TokenPurchaseModal } from './TokenPurchaseModal'
 
 interface TokenBalanceProps {
   showUsage?: boolean
@@ -19,15 +20,18 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     error,
     refreshBalance
   } = useTokens()
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false)
 
   // 사용자 로그인 시 토큰 정보 가져오기
   useEffect(() => {
+    console.log('TokenBalance useEffect:', { user: !!user, authLoading, loading });
     if (user && !authLoading) {
+      console.log('Calling refreshBalance...');
       refreshBalance().catch((err) => {
         console.error('토큰 잔액 조회 실패:', err);
       });
     }
-  }, [user, authLoading])
+  }, [user, authLoading, refreshBalance])
 
   // 로그인하지 않은 경우
   if (!user) {
@@ -89,6 +93,16 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         </div>
       )}
 
+      {/* 토큰 구매 버튼 */}
+      <button
+        onClick={() => setIsPurchaseModalOpen(true)}
+        className="px-3 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1"
+        title="토큰 구매"
+      >
+        <span>💳</span>
+        <span>구매</span>
+      </button>
+
       {/* 새로고침 버튼 */}
       <button
         onClick={refreshBalance}
@@ -117,6 +131,16 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
           ⚠️ 토큰이 부족합니다
         </div>
       )}
+
+      {/* 토큰 구매 모달 */}
+      <TokenPurchaseModal
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        onPurchaseSuccess={() => {
+          refreshBalance()
+          setIsPurchaseModalOpen(false)
+        }}
+      />
     </div>
   )
 }

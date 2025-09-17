@@ -6,7 +6,9 @@
       "Bash(npm run dev:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.tosspayments.com)"
     ],
     "deny": [],
     "ask": []
