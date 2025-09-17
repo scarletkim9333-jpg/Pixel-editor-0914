@@ -4,7 +4,7 @@ import { Controls } from './components/Controls';
 import { OutputViewer } from './components/OutputViewer';
 import { ImageUploader } from './components/ImageUploader';
 import { DrawingCanvas } from './components/DrawingCanvas';
-import { LogoIcon, QuestionMarkCircleIcon } from './components/Icons';
+import { LogoIcon, QuestionMarkCircleIcon, PixelCoinIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
@@ -52,12 +52,25 @@ const AppContent: React.FC = () => {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [lastTokenUsage, setLastTokenUsage] = useState<TokenUsage | null>(null);
   const [sessionTokenUsage, setSessionTokenUsage] = useState<TokenUsage>({ promptTokenCount: 0, candidatesTokenCount: 0, totalTokenCount: 0 });
+  const [lastGenerationInfo, setLastGenerationInfo] = useState<{
+    model: string;
+    iterations: number;
+    cost: number;
+  } | null>(null);
+  const [lastUpscaleInfo, setLastUpscaleInfo] = useState<{
+    model: string;
+    cost: number;
+    count: number;
+  } | null>(null);
   const [isDrawingCanvasOpen, setIsDrawingCanvasOpen] = useState(false);
   const [skeletonCount, setSkeletonCount] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
   const [requiredTokens, setRequiredTokens] = useState(0);
   const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
+  const [animateCoin, setAnimateCoin] = useState(false);
+  const balanceRef = useRef<HTMLDivElement>(null);
+  const generateBtnRef = useRef<HTMLButtonElement>(null);
 
   // State for Controls (lifted up)
   const [prompt, setPrompt] = useState('');
@@ -201,19 +214,25 @@ const AppContent: React.FC = () => {
 
     // 토큰 부족시 명확한 안내
     if (balance === null || balance < tokensRequired) {
-      setError(`토큰이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
+      setError(`픽셀 코인이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
       setRequiredTokens(tokensRequired);
       setIsTokenPurchaseModalOpen(true);
       return;
     }
-    
+
+    // 애니메이션 시작
+    if (balanceRef.current && generateBtnRef.current) {
+      setAnimateCoin(true);
+      setTimeout(() => setAnimateCoin(false), 1000);
+    }
+
     isCancelledRef.current = false;
     setIsLoading(true);
     setError(null);
     setGeneratedImages([]);
     setLastTokenUsage(null);
     setActiveTab('results');
-    
+
     const preset = request.selectedPresets[0];
     if (preset?.id === 'figurine') {
         setSkeletonCount(request.selectedPresetOptionIds.length > 0 ? request.selectedPresetOptionIds.length : 1);
@@ -223,7 +242,7 @@ const AppContent: React.FC = () => {
 
 
     try {
-      // 토큰 차감
+      // 픽셀 코인 차감
       await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
 
       const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
@@ -235,6 +254,14 @@ const AppContent: React.FC = () => {
 
       setGeneratedImages(result.images);
       setLastTokenUsage(result.usage);
+
+      // 생성 정보 저장
+      setLastGenerationInfo({
+        model: model,
+        iterations: numberOfOutputs,
+        cost: tokensRequired
+      });
+
       if(result.text) {
         console.log("Model Text Output:", result.text);
       }
@@ -269,7 +296,7 @@ const AppContent: React.FC = () => {
         if (err && typeof err === 'object' && 'response' in err) {
           const response = (err as any).response;
           if (response?.status === 402) {
-            errorMessage = '토큰이 부족합니다. 충전 후 다시 시도해주세요.';
+            errorMessage = '픽셀 코인이 부족합니다. 충전 후 다시 시도해주세요.';
             setRequiredTokens(numberOfOutputs * getModelTokenCost(model));
             setIsTokenPurchaseModalOpen(true);
           } else if (response?.status === 401) {
@@ -334,11 +361,39 @@ const AppContent: React.FC = () => {
   }, [t.errorDeleteHistory]);
   
   const handleUpscale = useCallback(async (imageUrl: string) => {
-      // Placeholder for Fal.ai or other upscaling service integration
-      // This would typically involve a backend call
-      alert(`${t.upscaleWip} (Target: ${resolution.toUpperCase()})`);
-      console.log(`Upscaling image: ${imageUrl} to ${resolution} with aspect ratio: ${aspectRatio}`);
-  }, [aspectRatio, resolution, t.upscaleWip]);
+      // 업스케일 비용 고정 5토큰
+      const upscaleCost = 5;
+
+      // 토큰 잔액 확인
+      if (balance === null || balance < upscaleCost) {
+        setError(`업스케일에 필요한 픽셀 코인이 부족합니다. (필요: ${upscaleCost}, 보유: ${balance || 0})`);
+        setRequiredTokens(upscaleCost);
+        setIsTokenPurchaseModalOpen(true);
+        return;
+      }
+
+      try {
+        // 토큰 차감
+        await useTokensFunction(upscaleCost, `이미지 업스케일 (${resolution})`);
+
+        // 업스케일 정보 별도 저장
+        setLastUpscaleInfo(prev => prev ? {
+          model: 'Topaz',
+          cost: prev.cost + upscaleCost,
+          count: prev.count + 1
+        } : {
+          model: 'Topaz',
+          cost: upscaleCost,
+          count: 1
+        });
+
+        alert(`✅ 업스케일 완료! (비용: ${upscaleCost} 🪙)\n대상: ${resolution.toUpperCase()}`);
+        console.log(`Upscaling image: ${imageUrl} to ${resolution} with aspect ratio: ${aspectRatio}`);
+      } catch (err) {
+        console.error('Upscale failed:', err);
+        setError('업스케일에 실패했습니다.');
+      }
+  }, [aspectRatio, resolution, balance, useTokensFunction, setError, setRequiredTokens, setIsTokenPurchaseModalOpen]);
 
   const handleLoadHistory = useCallback((item: HistoryItem) => {
     const mainImageFile = dataURLtoFile(item.mainImage, 'main-image.png');
@@ -383,12 +438,12 @@ const AppContent: React.FC = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              {user && <TokenBalance />}
+              {user && <div ref={balanceRef}><TokenBalance /></div>}
 
               <div className="flex items-center space-x-1">
                 <button
                     onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
-                    className="py-1 px-3 text-sm font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors whitespace-nowrap"
+                    className="py-2 px-4 text-lg font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors whitespace-nowrap font-neodgm"
                     aria-label={t.languageToggle}
                   >
                     {language === 'ko' ? 'English' : '한국어'}
@@ -450,9 +505,9 @@ const AppContent: React.FC = () => {
             </div>
             <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000] sticky top-20">
                <h2 className="text-xl font-semibold text-black mb-4">{t.editTitle}</h2>
-              <Controls 
-                onGenerate={handleGenerate} 
-                onSuggest={handleSuggestion} 
+              <Controls
+                onGenerate={handleGenerate}
+                onSuggest={handleSuggestion}
                 isLoading={isLoading}
                 disabledReason={disabledReason}
                 prompt={prompt}
@@ -471,6 +526,7 @@ const AppContent: React.FC = () => {
                 setAspectRatio={setAspectRatio}
                 resolution={resolution}
                 setResolution={setResolution}
+                generateBtnRef={generateBtnRef}
               />
             </div>
           </div>
@@ -500,6 +556,8 @@ const AppContent: React.FC = () => {
                       onResetSessionUsage={handleResetSessionUsage}
                       onUpscale={handleUpscale}
                       skeletonCount={skeletonCount}
+                      lastGenerationInfo={lastGenerationInfo}
+                      lastUpscaleInfo={lastUpscaleInfo}
                     />
                   ) : (
                     <HistoryPanel
@@ -549,7 +607,63 @@ const AppContent: React.FC = () => {
           }}
         />
       )}
+
+      {/* 코인 애니메이션 컴포넌트 */}
+      {animateCoin && <FlyingCoin startRef={balanceRef} endRef={generateBtnRef} />}
     </div>
+  );
+};
+
+// 코인 애니메이션을 위한 별도 컴포넌트
+const FlyingCoin: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: React.RefObject<HTMLElement> }> = ({ startRef, endRef }) => {
+  const [position, setPosition] = useState({ top: -999, left: -999 });
+
+  useEffect(() => {
+    if (startRef.current && endRef.current) {
+      const startRect = startRef.current.getBoundingClientRect();
+      const endRect = endRef.current.getBoundingClientRect();
+
+      // 시작 위치: 코인 잔액 아이콘 중앙
+      const startTop = startRect.top + startRect.height / 2;
+      const startLeft = startRect.left + startRect.width / 4;
+
+      // 종료 위치: 생성 버튼 중앙
+      const endTop = endRect.top + endRect.height / 2;
+      const endLeft = endRect.left + endRect.width / 2;
+
+      // CSS 변수로 위치 전달
+      document.documentElement.style.setProperty('--coin-start-top', `${startTop}px`);
+      document.documentElement.style.setProperty('--coin-start-left', `${startLeft}px`);
+      document.documentElement.style.setProperty('--coin-end-top', `${endTop}px`);
+      document.documentElement.style.setProperty('--coin-end-left', `${endLeft}px`);
+
+      setPosition({top: startTop, left: startLeft});
+    }
+  }, [startRef, endRef]);
+
+  if (position.top === -999) return null;
+
+  return (
+    <>
+      <div className="fixed flying-coin z-50" style={{ top: 0, left: 0 }}>
+        <PixelCoinIcon className="w-8 h-8" />
+      </div>
+      <style>{`
+        @keyframes fly {
+          0% {
+            transform: translate(var(--coin-start-left), var(--coin-start-top)) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(var(--coin-end-left), var(--coin-end-top)) scale(0.5);
+            opacity: 0;
+          }
+        }
+        .flying-coin {
+          animation: fly 1s ease-in-out forwards;
+        }
+      `}</style>
+    </>
   );
 };
 
@@ -566,13 +680,6 @@ const SimpleAppContent: React.FC = () => {
   const [creativity, setCreativity] = useState(0.7);
   const [numberOfOutputs, setNumberOfOutputs] = useState(1);
   const [model, setModel] = useState<ModelId>('nanobanana');
-
-  // 임시로 모든 auth 관련 기능 비활성화
-  const user = null;
-  const signInWithGoogle = async () => {};
-  const signOut = async () => {};
-  const balance = null;
-  const tokenLoading = false;
 
   // 이미지 생성 함수
   const handleGenerate = async () => {

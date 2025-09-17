@@ -87,3 +87,18 @@ export const UndoIcon: React.FC<IconProps> = (props) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
   </svg>
 );
+
+export const PixelCoinIcon: React.FC<IconProps> = (props) => (
+  <svg {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ imageRendering: 'pixelated' }}>
+    <rect x="7" y="3" width="10" height="18" fill="#FFD700"/>
+    <rect x="8" y="3" width="8" height="1" fill="#FFB300"/>
+    <rect x="8" y="20" width="8" height="1" fill="#FFB300"/>
+    <rect x="7" y="4" width="1" height="16" fill="#FFA000"/>
+    <rect x="16" y="4" width="1" height="16" fill="#FFA000"/>
+    <path d="M11 7H13V9H11V7Z" fill="#FFA000"/>
+    <path d="M10 9H11V11H10V9Z" fill="#FFA000"/>
+    <path d="M13 9H14V11H13V9Z" fill="#FFA000"/>
+    <path d="M11 11H13V15H11V11Z" fill="#FFA000"/>
+    <path d="M11 15H13V17H11V15Z" fill="#FFA000"/>
+  </svg>
+);

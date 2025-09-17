@@ -13,6 +13,16 @@ interface OutputViewerProps {
   onResetSessionUsage: () => void;
   onUpscale: (imageUrl: string) => void;
   skeletonCount: number;
+  lastGenerationInfo?: {
+    model: string;
+    iterations: number;
+    cost: number;
+  };
+  lastUpscaleInfo?: {
+    model: string;
+    cost: number;
+    count: number;
+  };
 }
 
 const LoadingSkeleton: React.FC = () => (
@@ -30,15 +40,17 @@ const EmptyState: React.FC = () => {
   );
 };
 
-const TokenStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+const TokenStat: React.FC<{ label: string; value: number | string }> = ({ label, value }) => (
   <div>
-    <span className="text-sm text-gray-600">{label}</span>
-    <p className="font-semibold text-black text-xl tracking-tighter">{value.toLocaleString()}</p>
+    <span className="text-sm text-gray-600 font-neodgm">{label}</span>
+    <p className="font-semibold text-black text-lg tracking-tighter font-neodgm">
+      {typeof value === 'number' ? value.toLocaleString() : value}
+    </p>
   </div>
 );
 
 
-export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, error, tokenUsage, sessionTokenUsage, onResetSessionUsage, onUpscale, skeletonCount }) => {
+export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, error, tokenUsage, sessionTokenUsage, onResetSessionUsage, onUpscale, skeletonCount, lastGenerationInfo, lastUpscaleInfo }) => {
   const { t } = useTranslations();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -104,25 +116,34 @@ export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, e
               )}
             </div>
             <div className="space-y-3">
-              {sessionTokenUsage && sessionTokenUsage.totalTokenCount > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">{t.thisSessionLabel}</p>
-                    <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                      <TokenStat label={t.totalTokensLabel} value={sessionTokenUsage.totalTokenCount} />
-                      <TokenStat label={t.promptTokensLabel} value={sessionTokenUsage.promptTokenCount} />
-                      <TokenStat label={t.resultTokensLabel} value={sessionTokenUsage.candidatesTokenCount} />
-                    </div>
-                  </div>
-              )}
-              {tokenUsage && (
+              {lastGenerationInfo && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">{t.lastGenerationLabel}</p>
+                  <p className="text-sm font-medium text-gray-600 mb-2">📊 이번 생성 정보</p>
                   <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                    <TokenStat label={t.totalTokensLabel} value={tokenUsage.totalTokenCount} />
-                    <TokenStat label={t.promptTokensLabel} value={tokenUsage.promptTokenCount} />
-                    <TokenStat label={t.resultTokensLabel} value={tokenUsage.candidatesTokenCount} />
+                    <TokenStat label="🤖 모델" value={lastGenerationInfo.model} />
+                    <TokenStat label="🪙 비용" value={lastGenerationInfo.cost} />
+                    <TokenStat label="🔄 시행횟수" value={lastGenerationInfo.iterations} />
                   </div>
                 </div>
+              )}
+              {lastUpscaleInfo && (
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-2">🔍 업스케일 정보</p>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+                    <TokenStat label="⚡ 모델" value={lastUpscaleInfo.model} />
+                    <TokenStat label="🪙 비용" value={lastUpscaleInfo.cost} />
+                    <TokenStat label="🔢 횟수" value={lastUpscaleInfo.count} />
+                  </div>
+                </div>
+              )}
+              {sessionTokenUsage && sessionTokenUsage.totalTokenCount > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">📈 세션 누적</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <TokenStat label="🪙 총 사용" value={sessionTokenUsage.totalTokenCount} />
+                      <TokenStat label="🔢 생성 횟수" value={Math.floor(sessionTokenUsage.totalTokenCount / (lastGenerationInfo?.cost || 1))} />
+                    </div>
+                  </div>
               )}
             </div>
         </div>

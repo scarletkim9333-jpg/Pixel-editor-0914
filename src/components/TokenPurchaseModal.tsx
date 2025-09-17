@@ -17,7 +17,8 @@ interface TokenPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   requiredTokens?: number;
-  onPurchaseSuccess?: () => void;
+  currentBalance?: number; // 현재 balance를 외부에서 전달받음
+  onPurchaseSuccess?: (newBalance?: number) => void;
 }
 
 // TossPayments 클라이언트 키 (환경변수에서 가져오기)
@@ -27,6 +28,7 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
   isOpen,
   onClose,
   requiredTokens = 0,
+  currentBalance = 0,
   onPurchaseSuccess,
 }) => {
   const { getPackages, purchaseTokens, addTokensLocally, loading } = useTokens();
@@ -107,8 +109,18 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
           // 실제로 토큰 잔액 증가
           addTokensLocally(packageInfo.tokens);
 
+          // 업데이트된 balance 계산 (prop으로 받은 currentBalance 사용)
+          const newBalance = currentBalance + packageInfo.tokens;
+          console.log('Purchase completed:', {
+            previousBalance: currentBalance,
+            tokensAdded: packageInfo.tokens,
+            newBalance: newBalance
+          });
+
           alert(`✅ 결제 시뮬레이션 성공!\n${packageInfo.tokens.toLocaleString()}토큰이 충전되었습니다.`);
-          onPurchaseSuccess?.();
+
+          // 모달 닫기 전에 구매 성공 콜백 호출 (새 balance 전달)
+          onPurchaseSuccess?.(newBalance);
           onClose();
 
         } catch (error) {

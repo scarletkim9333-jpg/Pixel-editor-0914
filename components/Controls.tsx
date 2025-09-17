@@ -3,6 +3,7 @@ import type { GenerateImageRequest, Preset, ModelId, AspectRatio, Resolution } f
 import { getPresets } from '../translations';
 import { SparklesIcon, ChevronDownIcon } from './Icons';
 import { useTranslations } from '../contexts/LanguageContext';
+import { getModelTokenCost } from '../services/geminiService';
 
 interface ControlsProps {
   onGenerate: () => void;
@@ -26,19 +27,24 @@ interface ControlsProps {
   setAspectRatio: (value: AspectRatio) => void;
   resolution: Resolution;
   setResolution: (value: Resolution) => void;
+  generateBtnRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const PixelButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className, ...props }) => (
+const PixelButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ className, ...props }, ref) => (
     <button
-        className={`border-2 border-black shadow-[3px_3px_0_0_#000] transition-all duration-100 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-800 disabled:border-gray-600 disabled:shadow-[3px_3px_0_0_#666] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ${className}`}
+        ref={ref}
+        className={`border-2 border-black shadow-[3px_3px_0_0_#000] transition-all duration-100 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-800 disabled:border-gray-600 disabled:shadow-[3px_3px_0_0_#666] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none ${className}`}
         {...props}
     />
+  )
 );
+PixelButton.displayName = 'PixelButton';
 
 const OptionButton: React.FC<{isActive: boolean} & React.ButtonHTMLAttributes<HTMLButtonElement>> = ({isActive, className, ...props}) => (
     <button
       type="button"
-      className={`p-2 border-2 font-semibold transition ${
+      className={`p-3 border-2 font-semibold transition font-neodgm text-lg ${
         isActive
           ? 'bg-[#2E7D73] text-white border-black'
           : 'bg-transparent text-black border-black hover:bg-gray-100'
@@ -47,10 +53,10 @@ const OptionButton: React.FC<{isActive: boolean} & React.ButtonHTMLAttributes<HT
     />
 );
 
-export const Controls: React.FC<ControlsProps> = ({ 
-  onGenerate, 
-  onSuggest, 
-  isLoading, 
+export const Controls: React.FC<ControlsProps> = ({
+  onGenerate,
+  onSuggest,
+  isLoading,
   disabledReason,
   prompt,
   setPrompt,
@@ -68,6 +74,7 @@ export const Controls: React.FC<ControlsProps> = ({
   setAspectRatio,
   resolution,
   setResolution,
+  generateBtnRef,
 }) => {
   const { t } = useTranslations();
   const [isSuggesting, setIsSuggesting] = useState(false);
@@ -302,7 +309,7 @@ export const Controls: React.FC<ControlsProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="creativity" className="font-medium text-black text-xl">{t.creativityLabel} ({creativity.toFixed(1)})</label>
+        <label htmlFor="creativity" className="font-medium text-black text-2xl font-neodgm">{t.creativityLabel} ({creativity.toFixed(1)})</label>
         <input
           id="creativity"
           type="range"
@@ -316,9 +323,10 @@ export const Controls: React.FC<ControlsProps> = ({
       </div>
 
       <PixelButton
+        ref={generateBtnRef}
         type="submit"
         disabled={isActionDisabled}
-        className="w-full bg-[#E57A77] text-white font-bold py-3 px-4 flex items-center justify-center text-xl"
+        className="w-full bg-[#E57A77] text-white font-bold py-3 px-4 flex items-center justify-center text-2xl font-neodgm"
       >
         {isLoading ? (
           <>
@@ -331,7 +339,12 @@ export const Controls: React.FC<ControlsProps> = ({
         ) : buttonDisabledReason ? (
           buttonDisabledReason
         ) : (
-          t.generateButton
+          <div className="flex items-center justify-center gap-3">
+            <span>{t.generateButton}</span>
+            <span className="text-xl font-bold bg-black bg-opacity-25 px-3 py-1 rounded border border-white border-opacity-30 font-neodgm">
+              {getModelTokenCost(model) * numberOfOutputs} 🪙
+            </span>
+          </div>
         )}
       </PixelButton>
     </form>

@@ -18,10 +18,15 @@ export const useTokens = () => {
 
     try {
       console.log('About to call tokenApi.getBalance()...');
-      // 임시로 하드코딩된 값 사용
+      // 임시로 하드코딩된 값 사용 (하지만 기존 balance가 있으면 유지)
       console.log('Using hardcoded token values for testing...');
-      setBalance(90);
-      setTotalUsed(10);
+
+      // 기존 balance가 null이거나 0이면 초기값 90 설정, 아니면 현재값 유지
+      if (balance === null || balance === 0) {
+        setBalance(90);
+        setTotalUsed(10);
+      }
+      // 이미 balance가 있으면 그대로 유지 (addTokensLocally로 업데이트된 값 보존)
     } catch (err) {
       console.error('Token balance fetch error:', err);
       console.error('Error details:', err);
@@ -31,13 +36,15 @@ export const useTokens = () => {
 
       // 인증 오류가 아닌 경우에만 기본값 설정
       if (!errorMessage.includes('인증') && !errorMessage.includes('401')) {
-        setBalance(0);
-        setTotalUsed(0);
+        if (balance === null) {
+          setBalance(0);
+          setTotalUsed(0);
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [balance]);
 
   
 
@@ -168,9 +175,13 @@ export const useTokens = () => {
 
   // 개발 환경용 토큰 직접 추가 함수
   const addTokensLocally = (amount: number) => {
-    if (balance !== null) {
-      setBalance(balance + amount);
-    }
+    console.log('addTokensLocally called:', { currentBalance: balance, amount, newBalance: (balance || 0) + amount });
+
+    // balance가 null이면 0으로 시작
+    const currentBalance = balance || 0;
+    const newBalance = currentBalance + amount;
+    setBalance(newBalance);
+    console.log('Token balance updated from', currentBalance, 'to', newBalance);
   };
 
   return {

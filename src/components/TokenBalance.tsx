@@ -1,12 +1,54 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTokens } from '../lib/tokenApi'
 import { TokenPurchaseModal } from './TokenPurchaseModal'
+import { PixelCoinIcon } from '../../components/Icons'
 
 interface TokenBalanceProps {
   showUsage?: boolean
   className?: string
 }
+
+// 숫자 카운팅 애니메이션을 위한 커스텀 훅
+const useCountUp = (end: number, duration: number = 1000) => {
+  const [count, setCount] = useState(0);
+  const frameRate = 1000 / 60;
+  const totalFrames = Math.round(duration / frameRate);
+  const prevBalanceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // 최초 로드 시에는 애니메이션 없이 즉시 값 설정
+    if (prevBalanceRef.current === null) {
+      setCount(end);
+      prevBalanceRef.current = end;
+      return;
+    }
+
+    // 잔액이 변경되었을 때만 애니메이션 실행
+    if (prevBalanceRef.current !== end) {
+      const start = prevBalanceRef.current;
+      let frame = 0;
+
+      const counter = setInterval(() => {
+        frame++;
+        const progress = frame / totalFrames;
+        const currentCount = Math.round(start + (end - start) * progress);
+        setCount(currentCount);
+
+        if (frame === totalFrames) {
+          clearInterval(counter);
+          setCount(end); // 정확한 최종값 설정
+        }
+      }, frameRate);
+
+      prevBalanceRef.current = end;
+
+      return () => clearInterval(counter);
+    }
+  }, [end, duration, totalFrames]);
+
+  return count;
+};
 
 export const TokenBalance: React.FC<TokenBalanceProps> = ({
   showUsage = false,
@@ -21,6 +63,16 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     refreshBalance
   } = useTokens()
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false)
+  const [forceBalance, setForceBalance] = useState<number | null>(null)
+
+  // forceBalance가 설정되면 그것을 사용, 아니면 balance 사용
+  const displayBalance = forceBalance !== null ? forceBalance : (balance ?? 0)
+  const animatedBalance = useCountUp(displayBalance)
+
+  // balance 변화 감지 (디버깅용 로그 제거)
+  useEffect(() => {
+    // console.log('TokenBalance balance changed:', balance);
+  }, [balance]);
 
   // 사용자 로그인 시 토큰 정보 가져오기
   useEffect(() => {
@@ -28,7 +80,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     if (user && !authLoading) {
       console.log('Calling refreshBalance...');
       refreshBalance().catch((err) => {
-        console.error('토큰 잔액 조회 실패:', err);
+        console.error('픽셀 코인 잔액 조회 실패:', err);
       });
     }
   }, [user, authLoading, refreshBalance])
@@ -42,8 +94,8 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   if (loading || authLoading) {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
-        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-        <span className="text-gray-600">토큰 정보 로딩 중...</span>
+        <div className="animate-spin h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full"></div>
+        <span className="text-gray-600">코인 정보 로딩 중...</span>
       </div>
     )
   }
@@ -65,80 +117,35 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   // 토큰 정보 표시
   return (
-    <div className={`flex items-center space-x-4 ${className}`}>
+    <div className={`flex items-center space-x-2 ${className}`}>
       {/* 현재 잔액 */}
-      <div className="flex items-center space-x-2">
-        <span className="text-2xl">🪙</span>
-        <div>
-          <span className="text-sm text-gray-600">토큰 잔액</span>
-          <div className="font-bold text-lg">
-            <span className={balance && balance < 10 ? 'text-red-600' : 'text-green-600'}>
-              {balance?.toLocaleString() ?? 0}
-            </span>
-            <span className="text-gray-500 text-sm ml-1">토큰</span>
-          </div>
-        </div>
+      <div className="flex items-center space-x-1">
+        <span className={`font-bold text-2xl font-neodgm ${balance && balance < 10 ? 'text-red-600' : 'text-black'}`}>
+          {animatedBalance.toLocaleString()}
+        </span>
       </div>
 
-      {/* 총 사용량 (옵션) */}
-      {showUsage && (
-        <div className="flex items-center space-x-2 border-l pl-4">
-          <span className="text-lg">📊</span>
-          <div>
-            <span className="text-sm text-gray-600">총 사용량</span>
-            <div className="font-medium text-gray-700">
-              {totalUsed.toLocaleString()} 토큰
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 토큰 구매 버튼 */}
+      {/* 코인 구매 버튼 (심플한 + 버튼) */}
       <button
         onClick={() => setIsPurchaseModalOpen(true)}
-        className="px-3 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1"
-        title="토큰 구매"
+        className="flex items-center justify-center w-8 h-8 bg-yellow-400 hover:bg-yellow-500 rounded-full border-2 border-black transition-colors font-bold text-black text-lg font-neodgm"
+        title="픽셀 코인 충전"
       >
-        <span>💳</span>
-        <span>구매</span>
+        +
       </button>
 
-      {/* 새로고침 버튼 */}
-      <button
-        onClick={refreshBalance}
-        disabled={loading}
-        className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-        title="토큰 정보 새로고침"
-      >
-        <svg
-          className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
-      </button>
-
-      {/* 잔액 부족 경고 */}
-      {balance !== null && balance < 10 && (
-        <div className="text-red-600 text-sm">
-          ⚠️ 토큰이 부족합니다
-        </div>
-      )}
-
-      {/* 토큰 구매 모달 */}
+      {/* 코인 구매 모달 */}
       <TokenPurchaseModal
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
-        onPurchaseSuccess={() => {
-          refreshBalance()
-          setIsPurchaseModalOpen(false)
+        currentBalance={displayBalance} // 현재 표시 중인 balance 전달
+        onPurchaseSuccess={(newBalance) => {
+          console.log('TokenBalance received new balance:', newBalance);
+          // 새 balance를 강제로 설정해서 애니메이션 트리거
+          if (newBalance !== undefined) {
+            setForceBalance(newBalance);
+          }
+          setIsPurchaseModalOpen(false);
         }}
       />
     </div>
