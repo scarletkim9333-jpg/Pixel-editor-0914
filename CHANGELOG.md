@@ -1,3 +1,13 @@
+# [](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/compare/v0.1.1...v) (2025-09-18)
+
+
+### Features
+
+* UI/UX 대폭 개선 및 용어 통일 ([da54880](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/da54880e1e2b3bf7a226be1f5ede2fdb0e127ae2))
+* 픽셀 에디터 UI/UX 대폭 개선 및 토큰 시스템 완성 ([ee315b7](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/ee315b7f793969a182e40b31839c82f979de03d8))
+
+
+
 # [](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/compare/v0.1.1...v) (2025-09-17)
 
 
