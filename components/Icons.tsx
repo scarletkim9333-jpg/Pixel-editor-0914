@@ -88,7 +88,7 @@ export const UndoIcon: React.FC<IconProps> = (props) => (
   </svg>
 );
 
-export const PixelCoinIcon: React.FC<IconProps> = (props) => (
+export const PixelTokenIcon: React.FC<IconProps> = (props) => (
   <svg {...props} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ imageRendering: 'pixelated' }}>
     <rect x="7" y="3" width="10" height="18" fill="#FFD700"/>
     <rect x="8" y="3" width="8" height="1" fill="#FFB300"/>

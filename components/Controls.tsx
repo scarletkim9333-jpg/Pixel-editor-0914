@@ -206,7 +206,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     : 'bg-[#FFFBF2] hover:bg-gray-100 border-black'
                 }`}
               >
-                <p className="font-semibold text-black text-lg">{preset.name}</p>
+                <p className="font-semibold text-black text-lg font-neodgm">{preset.name}</p>
                 <p className="text-sm text-gray-700 whitespace-pre-line">{preset.description}</p>
               </button>
             ))}
@@ -229,7 +229,7 @@ export const Controls: React.FC<ControlsProps> = ({
                   : 'bg-transparent text-black border-black hover:bg-gray-100'
                 }`}
               >
-                <p className="font-semibold text-base">{t[option.nameKey]}</p>
+                <p className="font-semibold text-base font-neodgm">{t[option.nameKey]}</p>
               </button>
             ))}
           </div>
@@ -341,7 +341,7 @@ export const Controls: React.FC<ControlsProps> = ({
         ) : (
           <div className="flex items-center justify-center gap-3">
             <span>{t.generateButton}</span>
-            <span className="text-xl font-bold bg-black bg-opacity-25 px-3 py-1 rounded border border-white border-opacity-30 font-neodgm">
+            <span className="text-xl font-bold bg-black bg-opacity-25 px-3 py-1 rounded border border-white border-opacity-30" style={{ fontFamily: "'Noto Sans KR', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" }}>
               {getModelTokenCost(model) * numberOfOutputs} 🪙
             </span>
           </div>

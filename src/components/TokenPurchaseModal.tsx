@@ -170,10 +170,10 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
       <div className="bg-[#FDF6E3] border-2 border-black shadow-[8px_8px_0_0_#000] max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-black">🪙 토큰 구매</h2>
+            <h2 className="text-2xl font-bold text-black font-neodgm">🪙 토큰 구매</h2>
             <button
               onClick={onClose}
-              className="text-2xl font-bold text-black hover:text-gray-600 transition-colors"
+              className="text-2xl font-bold text-black hover:text-gray-600 transition-colors font-neodgm"
               aria-label="닫기"
             >
               ×
@@ -182,10 +182,10 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
 
           {requiredTokens > 0 && (
             <div className="mb-6 p-4 bg-orange-100 border-2 border-orange-300">
-              <p className="text-orange-800 font-semibold">
+              <p className="text-orange-800 font-semibold font-neodgm">
                 ⚠️ {requiredTokens}토큰이 필요합니다
               </p>
-              <p className="text-orange-700 text-sm mt-1">
+              <p className="text-orange-700 text-sm mt-1 font-neodgm">
                 현재 작업을 완료하려면 추가 토큰이 필요합니다.
               </p>
             </div>
@@ -203,32 +203,32 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
                 onClick={() => setSelectedPackage(pkg.id)}
               >
                 {pkg.popular && (
-                  <div className="absolute -top-2 left-4 bg-green-500 text-white px-2 py-1 text-xs font-bold">
+                  <div className="absolute -top-2 left-4 bg-green-500 text-white px-2 py-1 text-xs font-bold font-neodgm">
                     인기
                   </div>
                 )}
                 {pkg.discount && (
-                  <div className="absolute -top-2 right-4 bg-red-500 text-white px-2 py-1 text-xs font-bold">
+                  <div className="absolute -top-2 right-4 bg-red-500 text-white px-2 py-1 text-xs font-bold font-neodgm">
                     -{pkg.discount}%
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">{pkg.name}</h3>
-                    <p className="text-gray-600">
+                    <h3 className="text-lg font-semibold font-neodgm">{pkg.name}</h3>
+                    <p className="text-gray-600 font-neodgm">
                       {pkg.tokens.toLocaleString()}토큰
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 font-neodgm">
                       토큰당 {pkg.pricePerToken.toFixed(1)}원
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-black">
+                    <div className="text-2xl font-bold text-black font-neodgm">
                       ₩{pkg.price.toLocaleString()}
                     </div>
                     {pkg.discount && (
-                      <div className="text-xs text-gray-500 line-through">
+                      <div className="text-xs text-gray-500 line-through font-neodgm">
                         ₩{Math.round(pkg.price / (1 - pkg.discount / 100)).toLocaleString()}
                       </div>
                     )}
@@ -245,7 +245,7 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
           <div className="mt-6 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-2 px-4 border-2 border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+              className="flex-1 py-2 px-4 bg-gray-200 text-black border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-gray-300 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-100 ease-in-out font-neodgm"
               disabled={isProcessing}
             >
               취소
@@ -253,7 +253,7 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
             <button
               onClick={handlePurchase}
               disabled={!selectedPackage || isProcessing || loading}
-              className="flex-1 py-2 px-4 bg-blue-500 text-white border-2 border-blue-600 hover:bg-blue-600 disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 transition-colors"
+              className="flex-1 py-2 px-4 bg-[#E57A77] text-white border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#d46a68] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 disabled:shadow-[3px_3px_0_0_#666] disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0_0_#666] transition-all duration-100 ease-in-out font-neodgm"
             >
               {isProcessing ? (
                 <>
@@ -266,7 +266,7 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 text-xs text-gray-600 text-center">
+          <div className="mt-4 text-xs text-gray-600 text-center font-neodgm">
             <p>🔒 안전한 결제가 보장됩니다</p>
             <p>토큰은 구매 즉시 계정에 추가됩니다</p>
           </div>

@@ -15,7 +15,7 @@ const EmptyHistoryState: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 p-8">
       <ImageIcon className="w-16 h-16 mb-4 text-gray-400" />
-      <h3 className="text-lg font-semibold text-gray-700">{t.historyEmptyTitle}</h3>
+      <h3 className="text-lg font-semibold text-gray-700 font-neodgm">{t.historyEmptyTitle}</h3>
       <p className="text-base">{t.historyEmptyDescription}</p>
     </div>
   );
@@ -40,7 +40,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, onLoad, onD
             <div className="flex items-center gap-2 mt-3">
               <button
                 onClick={() => onLoad(item)}
-                className="flex items-center gap-2 text-base bg-[#2E7D73] hover:bg-[#25645c] text-white font-semibold py-1.5 px-3 border border-black transition"
+                className="flex items-center gap-2 text-base bg-[#2E7D73] hover:bg-[#25645c] text-white font-semibold py-1.5 px-3 border border-black transition font-neodgm"
                 aria-label="Load generation"
               >
                 <LoadIcon className="w-4 h-4" />
@@ -48,7 +48,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, onLoad, onD
               </button>
               <button
                 onClick={() => onDelete(item.id)}
-                className="flex items-center gap-2 text-base bg-gray-300 hover:bg-red-400 text-black hover:text-white font-semibold py-1.5 px-3 border border-black transition"
+                className="flex items-center gap-2 text-base bg-gray-300 hover:bg-red-400 text-black hover:text-white font-semibold py-1.5 px-3 border border-black transition font-neodgm"
                 aria-label="Delete generation"
               >
                 <TrashIcon className="w-4 h-4" />

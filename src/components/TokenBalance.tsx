@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTokens } from '../lib/tokenApi'
 import { TokenPurchaseModal } from './TokenPurchaseModal'
-import { PixelCoinIcon } from '../../components/Icons'
+import { PixelTokenIcon } from '../../components/Icons'
 
 interface TokenBalanceProps {
   showUsage?: boolean
@@ -80,7 +80,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     if (user && !authLoading) {
       console.log('Calling refreshBalance...');
       refreshBalance().catch((err) => {
-        console.error('픽셀 코인 잔액 조회 실패:', err);
+        console.error('픽셀 토큰 잔액 조회 실패:', err);
       });
     }
   }, [user, authLoading, refreshBalance])
@@ -95,7 +95,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
         <div className="animate-spin h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full"></div>
-        <span className="text-gray-600">코인 정보 로딩 중...</span>
+        <span className="text-gray-600">토큰 정보 로딩 중...</span>
       </div>
     )
   }
@@ -125,16 +125,17 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         </span>
       </div>
 
-      {/* 코인 구매 버튼 (심플한 + 버튼) */}
+      {/* 토큰 구매 버튼 (이모지 버전) */}
       <button
         onClick={() => setIsPurchaseModalOpen(true)}
-        className="flex items-center justify-center w-8 h-8 bg-yellow-400 hover:bg-yellow-500 rounded-full border-2 border-black transition-colors font-bold text-black text-lg font-neodgm"
-        title="픽셀 코인 충전"
+        className="flex items-center justify-center w-10 h-10 bg-transparent hover:bg-gray-100 hover:bg-opacity-20 rounded-full transition-all duration-300 transform hover:scale-110"
+        title="픽셀 토큰 충전"
+        style={{ fontFamily: "'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" }}
       >
-        +
+        <span className="text-2xl animate-spin-token">🪙</span>
       </button>
 
-      {/* 코인 구매 모달 */}
+      {/* 토큰 구매 모달 */}
       <TokenPurchaseModal
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}

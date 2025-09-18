@@ -4,7 +4,7 @@ import { Controls } from './components/Controls';
 import { OutputViewer } from './components/OutputViewer';
 import { ImageUploader } from './components/ImageUploader';
 import { DrawingCanvas } from './components/DrawingCanvas';
-import { LogoIcon, QuestionMarkCircleIcon, PixelCoinIcon } from './components/Icons';
+import { LogoIcon, QuestionMarkCircleIcon, PixelTokenIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
@@ -23,7 +23,7 @@ import { useTokens } from './src/lib/tokenApi';
 const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
-    className={`py-2 px-4 text-lg font-semibold transition-colors focus:outline-none ${
+    className={`py-2 px-4 text-lg font-semibold transition-colors focus:outline-none font-neodgm ${
       isActive
         ? 'border-b-4 border-black text-black'
         : 'text-gray-500 hover:text-black'
@@ -68,7 +68,7 @@ const AppContent: React.FC = () => {
   const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
   const [requiredTokens, setRequiredTokens] = useState(0);
   const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
-  const [animateCoin, setAnimateCoin] = useState(false);
+  const [animateToken, setAnimateToken] = useState(false);
   const balanceRef = useRef<HTMLDivElement>(null);
   const generateBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -214,7 +214,7 @@ const AppContent: React.FC = () => {
 
     // 토큰 부족시 명확한 안내
     if (balance === null || balance < tokensRequired) {
-      setError(`픽셀 코인이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
+      setError(`픽셀 토큰이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
       setRequiredTokens(tokensRequired);
       setIsTokenPurchaseModalOpen(true);
       return;
@@ -222,8 +222,8 @@ const AppContent: React.FC = () => {
 
     // 애니메이션 시작
     if (balanceRef.current && generateBtnRef.current) {
-      setAnimateCoin(true);
-      setTimeout(() => setAnimateCoin(false), 1000);
+      setAnimateToken(true);
+      setTimeout(() => setAnimateToken(false), 1000);
     }
 
     isCancelledRef.current = false;
@@ -242,9 +242,7 @@ const AppContent: React.FC = () => {
 
 
     try {
-      // 픽셀 코인 차감
-      await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
-
+      // 먼저 이미지 생성 시도
       const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
 
       if (isCancelledRef.current) {
@@ -254,6 +252,9 @@ const AppContent: React.FC = () => {
 
       setGeneratedImages(result.images);
       setLastTokenUsage(result.usage);
+
+      // 생성 성공 후에만 토큰 차감
+      await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
 
       // 생성 정보 저장
       setLastGenerationInfo({
@@ -296,7 +297,7 @@ const AppContent: React.FC = () => {
         if (err && typeof err === 'object' && 'response' in err) {
           const response = (err as any).response;
           if (response?.status === 402) {
-            errorMessage = '픽셀 코인이 부족합니다. 충전 후 다시 시도해주세요.';
+            errorMessage = '픽셀 토큰이 부족합니다. 충전 후 다시 시도해주세요.';
             setRequiredTokens(numberOfOutputs * getModelTokenCost(model));
             setIsTokenPurchaseModalOpen(true);
           } else if (response?.status === 401) {
@@ -366,7 +367,7 @@ const AppContent: React.FC = () => {
 
       // 토큰 잔액 확인
       if (balance === null || balance < upscaleCost) {
-        setError(`업스케일에 필요한 픽셀 코인이 부족합니다. (필요: ${upscaleCost}, 보유: ${balance || 0})`);
+        setError(`업스케일에 필요한 픽셀 토큰이 부족합니다. (필요: ${upscaleCost}, 보유: ${balance || 0})`);
         setRequiredTokens(upscaleCost);
         setIsTokenPurchaseModalOpen(true);
         return;
@@ -443,10 +444,10 @@ const AppContent: React.FC = () => {
               <div className="flex items-center space-x-1">
                 <button
                     onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
-                    className="py-2 px-4 text-lg font-semibold border-2 border-black bg-transparent hover:bg-gray-200 transition-colors whitespace-nowrap font-neodgm"
+                    className="flex items-center justify-center h-10 w-10 rounded-full bg-transparent hover:bg-gray-200 transition-colors font-neodgm text-sm font-bold text-black"
                     aria-label={t.languageToggle}
                   >
-                    {language === 'ko' ? 'English' : '한국어'}
+                    {language === 'ko' ? 'EN' : 'KO'}
                   </button>
                  <button
                   onClick={() => setIsHelpModalOpen(true)}
@@ -489,7 +490,7 @@ const AppContent: React.FC = () => {
           <div className="lg:w-1/3 flex flex-col gap-6">
             <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000]">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-black">{t.uploadTitle}</h2>
+                <h2 className="text-xl font-semibold text-black font-neodgm">{t.uploadTitle}</h2>
                  <button onClick={() => setIsDrawingCanvasOpen(true)} className="flex items-center gap-1.5 text-base text-[#2E7D73] hover:underline transition-colors" aria-label={t.openCanvas}>
                     <span role="img" aria-label="Pencil" className="text-lg">✏️</span>
                     <span>{t.draw}</span>
@@ -504,7 +505,7 @@ const AppContent: React.FC = () => {
               <p className="text-sm text-gray-700 mt-3">{t.uploaderDescription}</p>
             </div>
             <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000] sticky top-20">
-               <h2 className="text-xl font-semibold text-black mb-4">{t.editTitle}</h2>
+               <h2 className="text-xl font-semibold text-black mb-4 font-neodgm">{t.editTitle}</h2>
               <Controls
                 onGenerate={handleGenerate}
                 onSuggest={handleSuggestion}
@@ -608,14 +609,14 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* 코인 애니메이션 컴포넌트 */}
-      {animateCoin && <FlyingCoin startRef={balanceRef} endRef={generateBtnRef} />}
+      {/* 토큰 애니메이션 컴포넌트 */}
+      {animateToken && <FlyingToken startRef={balanceRef} endRef={generateBtnRef} />}
     </div>
   );
 };
 
-// 코인 애니메이션을 위한 별도 컴포넌트
-const FlyingCoin: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: React.RefObject<HTMLElement> }> = ({ startRef, endRef }) => {
+// 토큰 애니메이션을 위한 별도 컴포넌트
+const FlyingToken: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: React.RefObject<HTMLElement> }> = ({ startRef, endRef }) => {
   const [position, setPosition] = useState({ top: -999, left: -999 });
 
   useEffect(() => {
@@ -623,7 +624,7 @@ const FlyingCoin: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: Rea
       const startRect = startRef.current.getBoundingClientRect();
       const endRect = endRef.current.getBoundingClientRect();
 
-      // 시작 위치: 코인 잔액 아이콘 중앙
+      // 시작 위치: 토큰 잔액 아이콘 중앙
       const startTop = startRect.top + startRect.height / 2;
       const startLeft = startRect.left + startRect.width / 4;
 
@@ -632,10 +633,10 @@ const FlyingCoin: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: Rea
       const endLeft = endRect.left + endRect.width / 2;
 
       // CSS 변수로 위치 전달
-      document.documentElement.style.setProperty('--coin-start-top', `${startTop}px`);
-      document.documentElement.style.setProperty('--coin-start-left', `${startLeft}px`);
-      document.documentElement.style.setProperty('--coin-end-top', `${endTop}px`);
-      document.documentElement.style.setProperty('--coin-end-left', `${endLeft}px`);
+      document.documentElement.style.setProperty('--token-start-top', `${startTop}px`);
+      document.documentElement.style.setProperty('--token-start-left', `${startLeft}px`);
+      document.documentElement.style.setProperty('--token-end-top', `${endTop}px`);
+      document.documentElement.style.setProperty('--token-end-left', `${endLeft}px`);
 
       setPosition({top: startTop, left: startLeft});
     }
@@ -645,21 +646,21 @@ const FlyingCoin: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: Rea
 
   return (
     <>
-      <div className="fixed flying-coin z-50" style={{ top: 0, left: 0 }}>
-        <PixelCoinIcon className="w-8 h-8" />
+      <div className="fixed flying-token z-50" style={{ top: 0, left: 0 }}>
+        <PixelTokenIcon className="w-8 h-8" />
       </div>
       <style>{`
         @keyframes fly {
           0% {
-            transform: translate(var(--coin-start-left), var(--coin-start-top)) scale(1);
+            transform: translate(var(--token-start-left), var(--token-start-top)) scale(1);
             opacity: 1;
           }
           100% {
-            transform: translate(var(--coin-end-left), var(--coin-end-top)) scale(0.5);
+            transform: translate(var(--token-end-left), var(--token-end-top)) scale(0.5);
             opacity: 0;
           }
         }
-        .flying-coin {
+        .flying-token {
           animation: fly 1s ease-in-out forwards;
         }
       `}</style>
