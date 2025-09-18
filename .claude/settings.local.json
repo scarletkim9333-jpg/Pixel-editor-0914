@@ -8,7 +8,10 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "WebSearch",
-      "WebFetch(domain:docs.tosspayments.com)"
+      "WebFetch(domain:docs.tosspayments.com)",
+      "Bash(git add:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,13 +4,28 @@ import { UploadIcon, TrashIcon } from './Icons';
 import { useTranslations } from '../contexts/LanguageContext';
 
 interface ImageUploaderProps {
-  files: File[];
-  onFilesChange: (files: File[]) => void;
-  multiple: boolean;
+  files?: File[];
+  images?: File[];
+  onFilesChange?: (files: File[]) => void;
+  onImagesChange?: (images: File[]) => void;
+  multiple?: boolean;
+  maxImages?: number;
   label: string;
+  variant?: 'main' | 'reference';
 }
 
-export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesChange, multiple, label }) => {
+export const ImageUploader: React.FC<ImageUploaderProps> = ({
+  files,
+  images,
+  onFilesChange,
+  onImagesChange,
+  multiple = true,
+  maxImages = 10,
+  label,
+  variant = 'main'
+}) => {
+  const currentFiles = files || images || [];
+  const handleChange = onFilesChange || onImagesChange || (() => {});
   const { t } = useTranslations();
   const [isDragging, setIsDragging] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -19,27 +34,33 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesChan
   useEffect(() => {
     // Prevent memory leaks by revoking old object URLs
     const oldPreviews = [...imagePreviews];
-    const newPreviews = files.map(file => URL.createObjectURL(file));
+    const newPreviews = currentFiles.map(file => URL.createObjectURL(file));
     setImagePreviews(newPreviews);
-    
+
     return () => {
         [...oldPreviews, ...newPreviews].forEach(url => URL.revokeObjectURL(url));
     };
   // We only want to run this when the files prop changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files]);
+  }, [currentFiles]);
 
 
   const handleFileAdd = useCallback((addedFiles: FileList | null) => {
     if (!addedFiles) return;
     const fileArray = Array.from(addedFiles);
-    
+
+    let newFiles: File[];
     if (multiple) {
-      onFilesChange([...files, ...fileArray]);
+      newFiles = [...currentFiles, ...fileArray];
+      if (maxImages && newFiles.length > maxImages) {
+        newFiles = newFiles.slice(0, maxImages);
+      }
     } else {
-      onFilesChange(fileArray);
+      newFiles = fileArray.slice(0, 1);
     }
-  }, [onFilesChange, multiple, files]);
+
+    handleChange(newFiles);
+  }, [handleChange, multiple, currentFiles, maxImages]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -66,8 +87,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ files, onFilesChan
   };
   
   const handleRemoveImage = (index: number) => {
-    const updatedFiles = files.filter((_, i) => i !== index);
-    onFilesChange(updatedFiles);
+    const updatedFiles = currentFiles.filter((_, i) => i !== index);
+    handleChange(updatedFiles);
   };
   
   const triggerFileInput = () => {

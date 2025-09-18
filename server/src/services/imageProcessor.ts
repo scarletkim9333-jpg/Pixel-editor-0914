@@ -4,7 +4,7 @@ import { falService } from './fal';
 
 // 토큰 비용 상수
 const TOKEN_COSTS = {
-  NANOBANANA: parseInt(process.env.TOKEN_COST_NANOBANANA || '2'),
+  NANOBANANA: parseInt(process.env.TOKEN_COST_NANOBANANA || '4'),
   NANOBANANA_UPSCALE: parseInt(process.env.TOKEN_COST_NANOBANANA_UPSCALE || '1'),
   SEEDREAM: parseInt(process.env.TOKEN_COST_SEEDREAM || '4'),
   TOPAZ_UPSCALE: parseInt(process.env.TOKEN_COST_TOPAZ_UPSCALE || '5'),
@@ -83,10 +83,17 @@ class ImageProcessorService {
   /**
    * 모델별 토큰 비용 계산
    */
-  private calculateTokens(model: ProcessingModel): number {
+  private calculateTokens(model: ProcessingModel, params?: any): number {
+    let baseCost = 0;
+
     switch (model) {
       case 'nanobanana':
-        return TOKEN_COSTS.NANOBANANA;
+        baseCost = TOKEN_COSTS.NANOBANANA;
+        // aspect ratio가 'auto'가 아닌 경우 +2 토큰
+        if (params?.aspectRatio && params.aspectRatio !== 'auto') {
+          baseCost += 2;
+        }
+        return baseCost;
       case 'nanobanana-upscale':
         return TOKEN_COSTS.NANOBANANA_UPSCALE;
       case 'seedream':
@@ -144,7 +151,7 @@ class ImageProcessorService {
         prompt: request.prompt || `${request.model} processing`,
         model: request.model,
         images: result.images || [],
-        tokens_used: this.calculateTokens(request.model),
+        tokens_used: this.calculateTokens(request.model, request.params),
         settings: {
           model: request.model,
           params: request.params,
@@ -179,7 +186,7 @@ class ImageProcessorService {
     try {
       // 1. 토큰 잔액 확인
       const balance = await this.getTokenBalance(userId);
-      const requiredTokens = this.calculateTokens(request.model);
+      const requiredTokens = this.calculateTokens(request.model, request.params);
 
       if (balance < requiredTokens) {
         throw new Error('토큰이 부족합니다');

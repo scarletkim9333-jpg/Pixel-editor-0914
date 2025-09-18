@@ -9,6 +9,10 @@ export const translations = {
     login: '로그인',
     logout: '로그아웃',
     languageToggle: '영어로 언어 전환',
+    // Sidebar
+    createImageTitle: '✨ 새로운 이미지 생성',
+    editImageTitle: '✏️ 이미지 편집',
+    chatEditTitle: '💬 채팅으로 편집',
     // App
     errorLoadHistory: '기록을 불러오는데 실패했습니다.',
     errorCancelled: '생성이 취소되었습니다.',
@@ -121,6 +125,10 @@ export const translations = {
     login: 'Login',
     logout: 'Logout',
     languageToggle: 'Switch language to Korean',
+    // Sidebar
+    createImageTitle: '✨ Create New Image',
+    editImageTitle: '✏️ Edit Image',
+    chatEditTitle: '💬 Chat to Edit',
     // App
     errorLoadHistory: 'Failed to load history.',
     errorCancelled: 'Generation cancelled.',

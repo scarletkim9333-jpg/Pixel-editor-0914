@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ImageIcon, DownloadIcon } from './Icons';
 import type { TokenUsage } from '../types';
 import { useTranslations } from '../contexts/LanguageContext';
+import { LoadingAnimation } from './LoadingAnimation';
 
 interface OutputViewerProps {
   isLoading: boolean;
@@ -12,6 +13,7 @@ interface OutputViewerProps {
   sessionTokenUsage: TokenUsage;
   onResetSessionUsage: () => void;
   onUpscale: (imageUrl: string) => void;
+  onEditImage?: (imageUrl: string) => void;
   skeletonCount: number;
   lastGenerationInfo?: {
     model: string;
@@ -50,7 +52,7 @@ const TokenStat: React.FC<{ label: string; value: number | string }> = ({ label,
 );
 
 
-export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, error, tokenUsage, sessionTokenUsage, onResetSessionUsage, onUpscale, skeletonCount, lastGenerationInfo, lastUpscaleInfo }) => {
+export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, error, tokenUsage, sessionTokenUsage, onResetSessionUsage, onUpscale, onEditImage, skeletonCount, lastGenerationInfo, lastUpscaleInfo }) => {
   const { t } = useTranslations();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -65,11 +67,9 @@ export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, e
   
   const content = () => {
     if (isLoading) {
-      const gridClasses = skeletonCount === 4 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3';
+      const model = lastGenerationInfo?.model || 'nanobanana';
       return (
-        <div className={`grid ${gridClasses} gap-4`}>
-          {[...Array(skeletonCount)].map((_, i) => <LoadingSkeleton key={i} />)}
-        </div>
+        <LoadingAnimation model={model} />
       );
     }
     if (error) {
@@ -161,14 +161,29 @@ export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, e
             <img src={selectedImage} alt="Selected output" className="max-w-[80vw] max-h-[70vh] object-contain"/>
             <div className="text-center">
                 <p className="text-sm text-gray-700 mb-2">{t.modalResolutionNote}</p>
-                <button
-                    onClick={() => handleDownload(selectedImage)}
-                    className="inline-flex items-center gap-2 bg-[#2E7D73] text-white font-bold py-2 px-4 border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#25645c] transition-all duration-100 ease-in-out active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-                    aria-label={t.highResDownload}
-                >
-                    <DownloadIcon className="w-5 h-5" />
-                    <span>{t.highResDownload}</span>
-                </button>
+                <div className="flex gap-3 justify-center">
+                  <button
+                      onClick={() => handleDownload(selectedImage)}
+                      className="inline-flex items-center gap-2 bg-[#2E7D73] text-white font-bold py-2 px-4 border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#25645c] transition-all duration-100 ease-in-out active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+                      aria-label={t.highResDownload}
+                  >
+                      <DownloadIcon className="w-5 h-5" />
+                      <span>{t.highResDownload}</span>
+                  </button>
+                  {onEditImage && (
+                    <button
+                        onClick={() => {
+                          onEditImage(selectedImage);
+                          setSelectedImage(null);
+                        }}
+                        className="inline-flex items-center gap-2 bg-[#E57A77] text-white font-bold py-2 px-4 border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#d66966] transition-all duration-100 ease-in-out active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+                        aria-label="이 이미지 편집하기"
+                    >
+                        ✏️
+                        <span>이 이미지 편집하기</span>
+                    </button>
+                  )}
+                </div>
             </div>
             <button 
               onClick={() => setSelectedImage(null)}

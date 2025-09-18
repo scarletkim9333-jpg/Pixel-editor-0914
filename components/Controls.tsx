@@ -1,9 +1,11 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { GenerateImageRequest, Preset, ModelId, AspectRatio, Resolution } from '../types';
+import type { SidebarMode } from './Sidebar';
 import { getPresets } from '../translations';
 import { SparklesIcon, ChevronDownIcon } from './Icons';
 import { useTranslations } from '../contexts/LanguageContext';
-import { getModelTokenCost } from '../services/geminiService';
+import { getModelTokenCost, getTotalTokenCost, getAspectRatioTokenCost } from '../services/geminiService';
+import { OutputSizeDropdown } from './OutputSizeDropdown';
 
 interface ControlsProps {
   onGenerate: () => void;
@@ -28,6 +30,7 @@ interface ControlsProps {
   resolution: Resolution;
   setResolution: (value: Resolution) => void;
   generateBtnRef?: React.RefObject<HTMLButtonElement>;
+  mode?: SidebarMode;
 }
 
 const PixelButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
@@ -44,7 +47,7 @@ PixelButton.displayName = 'PixelButton';
 const OptionButton: React.FC<{isActive: boolean} & React.ButtonHTMLAttributes<HTMLButtonElement>> = ({isActive, className, ...props}) => (
     <button
       type="button"
-      className={`p-3 border-2 font-semibold transition font-neodgm text-lg ${
+      className={`p-2 border-2 font-semibold transition font-neodgm text-base ${
         isActive
           ? 'bg-[#2E7D73] text-white border-black'
           : 'bg-transparent text-black border-black hover:bg-gray-100'
@@ -75,10 +78,12 @@ export const Controls: React.FC<ControlsProps> = ({
   resolution,
   setResolution,
   generateBtnRef,
+  mode = 'edit',
 }) => {
   const { t } = useTranslations();
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const PRESETS = getPresets(t);
@@ -143,7 +148,7 @@ export const Controls: React.FC<ControlsProps> = ({
   
   const handleModelClick = (targetModel: ModelId) => {
     setModel(targetModel);
-    if (targetModel === 'seedance' && resolution === '1k') {
+    if (targetModel === 'seedream' && resolution === '1k') {
         setResolution('2k');
     } else if (targetModel === 'nanobanana') {
         setResolution('1k');
@@ -156,11 +161,68 @@ export const Controls: React.FC<ControlsProps> = ({
       buttonDisabledReason = t.figurineNoStyleSelected;
   }
   const isActionDisabled = isLoading || !!buttonDisabledReason;
-  
+
+  // Create 모드일 때는 간단한 프롬프트 입력창만 표시
+  if (mode === 'create') {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="space-y-1">
+          <label htmlFor="prompt" className="font-medium text-black text-base">{t.promptLabel}</label>
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={t.promptPlaceholder}
+              className="w-full p-2 pr-10 border-2 border-black focus:outline-2 focus:outline-offset-2 focus:outline-black transition bg-[#FFFBF2] text-black placeholder-gray-500 placeholder:text-sm resize-none overflow-y-hidden"
+              rows={2}
+            />
+            <button
+              type="button"
+              onClick={handleSuggestClick}
+              disabled={isSuggesting || isActionDisabled}
+              className="absolute top-2 right-2 p-1.5 text-gray-600 hover:text-black hover:scale-125 transition-transform duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              aria-label={t.suggestButtonAriaLabel}
+            >
+              <SparklesIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <PixelButton
+          ref={generateBtnRef}
+          type="submit"
+          disabled={isActionDisabled}
+          className="w-full bg-[#E57A77] text-white font-bold py-2 px-3 flex items-center justify-center text-lg font-neodgm"
+        >
+          {isLoading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {t.generateButtonLoading}
+            </>
+          ) : buttonDisabledReason ? (
+            buttonDisabledReason
+          ) : (
+            <div className="flex items-center justify-center gap-3">
+              <span>{t.generateButton}</span>
+              <span className="text-xl font-bold bg-black bg-opacity-25 px-3 py-1 rounded border border-white border-opacity-30" style={{ fontFamily: "'Noto Sans KR', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" }}>
+                {getTotalTokenCost(model, aspectRatio, numberOfOutputs)} 🪙
+              </span>
+            </div>
+          )}
+        </PixelButton>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <label htmlFor="prompt" className="font-medium text-black text-xl">{t.promptLabel}</label>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="space-y-1">
+        <label htmlFor="prompt" className="font-medium text-black text-base">{t.promptLabel}</label>
         <div className="relative">
           <textarea
             ref={textareaRef}
@@ -189,7 +251,7 @@ export const Controls: React.FC<ControlsProps> = ({
           onClick={() => setShowPresets(!showPresets)}
           className="w-full flex justify-between items-center py-1"
         >
-          <span className="font-medium text-black text-xl">{t.presetsLabel}</span>
+          <span className="font-medium text-black text-base">{t.presetsLabel}</span>
           <ChevronDownIcon className={`w-5 h-5 text-gray-600 transition-transform ${showPresets ? 'rotate-180' : ''}`} />
         </button>
 
@@ -200,7 +262,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 key={preset.id}
                 type="button"
                 onClick={() => handlePresetToggle(preset)}
-                className={`w-full p-3 border-2 text-left transition ${
+                className={`w-full p-2 border-2 text-left transition ${
                   selectedPresets.some(p => p.id === preset.id)
                     ? 'bg-[#a4d8d2] border-black ring-2 ring-black'
                     : 'bg-[#FFFBF2] hover:bg-gray-100 border-black'
@@ -216,14 +278,14 @@ export const Controls: React.FC<ControlsProps> = ({
 
       {selectedPreset?.id === 'figurine' && selectedPreset.options && (
         <div className="space-y-2">
-          <label className="font-medium text-black text-xl">{t.styleLabel} ({selectedPresetOptionIds.length})</label>
+          <label className="font-medium text-black text-base">{t.styleLabel} ({selectedPresetOptionIds.length})</label>
           <div className="grid grid-cols-2 gap-3">
             {selectedPreset.options.map(option => (
               <button
                 key={option.id}
                 type="button"
                 onClick={() => handleOptionClick(option.id)}
-                className={`p-3 border-2 text-center transition h-full ${
+                className={`p-2 border-2 text-center transition h-full ${
                   selectedPresetOptionIds.includes(option.id)
                   ? 'bg-[#2E7D73] text-white border-black'
                   : 'bg-transparent text-black border-black hover:bg-gray-100'
@@ -238,7 +300,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
       {selectedPreset?.id === 'angle_changer' && (
         <div className="space-y-2">
-          <label className="font-medium text-black text-xl">{t.outputsLabel}</label>
+          <label className="font-medium text-black text-base">{t.outputsLabel}</label>
           <div className="grid grid-cols-2 gap-2">
               {[4, 6].map(num => (
                 <OptionButton
@@ -255,19 +317,19 @@ export const Controls: React.FC<ControlsProps> = ({
       )}
 
       <div className="space-y-2">
-          <label className="font-medium text-black text-xl">{t.modelLabel}</label>
+          <label className="font-medium text-black text-base">{t.modelLabel}</label>
           <div className="grid grid-cols-2 gap-2">
               <OptionButton onClick={() => handleModelClick('nanobanana')} isActive={model === 'nanobanana'}>
                   NanoBanana
               </OptionButton>
-              <OptionButton onClick={() => handleModelClick('seedance')} isActive={model === 'seedance'}>
+              <OptionButton onClick={() => handleModelClick('seedream')} isActive={model === 'seedream'}>
                   Seedance
               </OptionButton>
           </div>
       </div>
       
       <div className="space-y-2">
-        <label className="font-medium text-black text-xl">{t.resolutionLabel}</label>
+        <label className="font-medium text-black text-base">{t.resolutionLabel}</label>
         <div className={`grid ${model === 'nanobanana' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
             {model === 'nanobanana' && (
               <OptionButton onClick={() => setResolution('1k')} isActive={resolution === '1k'}>
@@ -284,49 +346,56 @@ export const Controls: React.FC<ControlsProps> = ({
       </div>
 
       <div className="space-y-2">
-          <label className="font-medium text-black text-xl">{t.aspectRatioLabel}</label>
-          <div className="flex flex-col gap-2">
-             <div className="grid grid-cols-3 gap-2">
-                <OptionButton onClick={() => setAspectRatio('1:1')} isActive={aspectRatio === '1:1'}>
-                    1:1
-                </OptionButton>
-                <OptionButton onClick={() => setAspectRatio('4:3')} isActive={aspectRatio === '4:3'}>
-                    4:3
-                </OptionButton>
-                <OptionButton onClick={() => setAspectRatio('16:9')} isActive={aspectRatio === '16:9'}>
-                    16:9
-                </OptionButton>
-             </div>
-             <div className="grid grid-cols-3 gap-2">
-                <OptionButton onClick={() => setAspectRatio('3:4')} isActive={aspectRatio === '3:4'}>
-                    3:4
-                </OptionButton>
-                <OptionButton onClick={() => setAspectRatio('9:16')} isActive={aspectRatio === '9:16'}>
-                    9:16
-                </OptionButton>
-             </div>
-          </div>
+          <label className="font-medium text-black text-base">Output Size</label>
+          <OutputSizeDropdown
+            value={aspectRatio}
+            onChange={setAspectRatio}
+            disabled={isActionDisabled}
+            model={model}
+          />
+          {getAspectRatioTokenCost(aspectRatio, model) > 0 && (
+            <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+              추가 {getAspectRatioTokenCost(aspectRatio, model)}토큰 소모
+              {model === 'nanobanana' && ' (NanoBanana 종횡비 선택)'}
+            </div>
+          )}
       </div>
 
+      {/* 고급설정 섹션 */}
       <div className="space-y-2">
-        <label htmlFor="creativity" className="font-medium text-black text-2xl font-neodgm">{t.creativityLabel} ({creativity.toFixed(1)})</label>
-        <input
-          id="creativity"
-          type="range"
-          min="0"
-          max="1"
-          step="0.1"
-          value={creativity}
-          onChange={(e) => setCreativity(parseFloat(e.target.value))}
-          className="w-full"
-        />
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full flex justify-between items-center py-1"
+        >
+          <span className="font-medium text-black text-base">고급설정</span>
+          <ChevronDownIcon className={`w-5 h-5 text-gray-600 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showAdvanced && (
+          <div className="space-y-4 pt-2 border-2 border-gray-300 border-dashed p-4 bg-gray-50">
+            <div className="space-y-2">
+              <label htmlFor="creativity" className="font-medium text-black text-lg font-neodgm">{t.creativityLabel} ({creativity.toFixed(1)})</label>
+              <input
+                id="creativity"
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={creativity}
+                onChange={(e) => setCreativity(parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <PixelButton
         ref={generateBtnRef}
         type="submit"
         disabled={isActionDisabled}
-        className="w-full bg-[#E57A77] text-white font-bold py-3 px-4 flex items-center justify-center text-2xl font-neodgm"
+        className="w-full bg-[#E57A77] text-white font-bold py-2 px-3 flex items-center justify-center text-lg font-neodgm"
       >
         {isLoading ? (
           <>
@@ -342,7 +411,7 @@ export const Controls: React.FC<ControlsProps> = ({
           <div className="flex items-center justify-center gap-3">
             <span>{t.generateButton}</span>
             <span className="text-xl font-bold bg-black bg-opacity-25 px-3 py-1 rounded border border-white border-opacity-30" style={{ fontFamily: "'Noto Sans KR', 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" }}>
-              {getModelTokenCost(model) * numberOfOutputs} 🪙
+              {getTotalTokenCost(model, aspectRatio, numberOfOutputs)} 🪙
             </span>
           </div>
         )}

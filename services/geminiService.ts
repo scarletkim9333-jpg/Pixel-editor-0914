@@ -256,12 +256,49 @@ export const getSupportedModels = () => [
 ];
 
 /**
+ * Aspect Ratio에 따른 추가 토큰 비용 계산 (모델별로 다름)
+ */
+export const getAspectRatioTokenCost = (aspectRatio: string, modelId: string = 'nanobanana'): number => {
+  // Seedream은 종횡비 추가 비용 없음
+  if (modelId === 'seedream') {
+    return 0;
+  }
+
+  // NanoBanana만 종횡비 선택 시 추가 비용
+  const additionalCosts: Record<string, number> = {
+    'auto': 0, // native/종횡비 선택 안 함
+    '1:1': 2,  // 종횡비 선택 시 추가 비용
+    '3:4': 2,  // 종횡비 선택 시 추가 비용
+    '4:3': 2,  // 종횡비 선택 시 추가 비용
+    '9:16': 2, // 종횡비 선택 시 추가 비용
+    '16:9': 2, // 종횡비 선택 시 추가 비용
+  };
+
+  return additionalCosts[aspectRatio] || 2; // 기본값도 2토큰으로 설정
+};
+
+/**
  * 모델별 토큰 비용 계산
  */
 export const getModelTokenCost = (modelId: string): number => {
   const models = getSupportedModels();
   const model = models.find(m => m.id === modelId);
-  return model?.tokenCost || 2;
+  const cost = model?.tokenCost || 2;
+  console.log(`토큰 비용 계산 - 모델: ${modelId}, 비용: ${cost}토큰`);
+  return cost;
+};
+
+/**
+ * 총 토큰 비용 계산 (모델 + Aspect Ratio 추가 비용)
+ */
+export const getTotalTokenCost = (modelId: string, aspectRatio: string, numberOfOutputs: number = 1): number => {
+  const baseCost = getModelTokenCost(modelId);
+  const aspectRatioCost = getAspectRatioTokenCost(aspectRatio, modelId);
+  const totalPerImage = baseCost + aspectRatioCost;
+  const total = totalPerImage * numberOfOutputs;
+
+  console.log(`총 토큰 비용 계산 - 모델: ${modelId}(${baseCost}), 비율: ${aspectRatio}(+${aspectRatioCost}), 출력수: ${numberOfOutputs}, 총합: ${total}토큰`);
+  return total;
 };
 
 /**

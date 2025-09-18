@@ -19,8 +19,8 @@ export interface ImageFile {
   mimeType: string;
 }
 
-export type ModelId = 'nanobanana' | 'seedance';
-export type AspectRatio = '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
+export type ModelId = 'nanobanana' | 'seedream';
+export type AspectRatio = 'auto' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
 export type Resolution = '1k' | '2k' | '4k';
 
 

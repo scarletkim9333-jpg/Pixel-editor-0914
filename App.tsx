@@ -4,12 +4,15 @@ import { Controls } from './components/Controls';
 import { OutputViewer } from './components/OutputViewer';
 import { ImageUploader } from './components/ImageUploader';
 import { DrawingCanvas } from './components/DrawingCanvas';
+import { Sidebar, type SidebarMode } from './components/Sidebar';
+import { CreateMode } from './components/CreateMode';
+import { EditMode } from './components/EditMode';
 import { LogoIcon, QuestionMarkCircleIcon, PixelTokenIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
 import { PaymentCallback } from './src/components/PaymentCallback';
-import { editImageWithGemini, getPromptSuggestion, getModelTokenCost } from './services/geminiService';
+import { editImageWithGemini, getPromptSuggestion, getModelTokenCost, getTotalTokenCost } from './services/geminiService';
 import * as historyService from './services/historyService';
 import { fileToDataURL, dataURLtoFile } from './utils';
 import type { GenerateImageRequest, TokenUsage, HistoryItem, Preset, AspectRatio, ModelId, Resolution } from './types';
@@ -79,12 +82,15 @@ const AppContent: React.FC = () => {
   const [selectedPresetOptionIds, setSelectedPresetOptionIds] = useState<string[]>([]);
   const [numberOfOutputs, setNumberOfOutputs] = useState(1);
   const [model, setModel] = useState<ModelId>('nanobanana');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('auto');
   const [resolution, setResolution] = useState<Resolution>('1k');
 
   // State for History
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [activeTab, setActiveTab] = useState<'results' | 'history'>('results');
+
+  // State for Sidebar
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>('edit');
   
   const isCancelledRef = useRef(false);
 
@@ -208,9 +214,10 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    // 모델별 토큰 잔액 확인
-    const tokensPerImage = getModelTokenCost(model);
-    const tokensRequired = numberOfOutputs * tokensPerImage;
+    // 모델별 토큰 잔액 확인 (Aspect Ratio 추가 비용 포함)
+    const tokensRequired = getTotalTokenCost(model, aspectRatio, numberOfOutputs);
+
+    console.log(`토큰 소모 계산 - 모델: ${model}, 비율: ${aspectRatio}, 출력수: ${numberOfOutputs}, 총 필요: ${tokensRequired}토큰`);
 
     // 토큰 부족시 명확한 안내
     if (balance === null || balance < tokensRequired) {
@@ -254,6 +261,7 @@ const AppContent: React.FC = () => {
       setLastTokenUsage(result.usage);
 
       // 생성 성공 후에만 토큰 차감
+      console.log(`실제 토큰 차감 - ${tokensRequired}토큰 소모`);
       await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
 
       // 생성 정보 저장
@@ -298,7 +306,7 @@ const AppContent: React.FC = () => {
           const response = (err as any).response;
           if (response?.status === 402) {
             errorMessage = '픽셀 토큰이 부족합니다. 충전 후 다시 시도해주세요.';
-            setRequiredTokens(numberOfOutputs * getModelTokenCost(model));
+            setRequiredTokens(getTotalTokenCost(model, aspectRatio, numberOfOutputs));
             setIsTokenPurchaseModalOpen(true);
           } else if (response?.status === 401) {
             errorMessage = '로그인이 만료되었습니다. 다시 로그인해주세요.';
@@ -361,6 +369,27 @@ const AppContent: React.FC = () => {
     }
   }, [t.errorDeleteHistory]);
   
+  const handleEditImage = useCallback(async (imageUrl: string) => {
+    try {
+      // URL에서 이미지 다운로드
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'edited-image.png', { type: blob.type });
+
+      // 이미지 설정
+      setImages([file]);
+
+      // Edit 모드로 전환
+      setSidebarMode('edit');
+
+      // 탭을 results로 설정
+      setActiveTab('results');
+    } catch (err) {
+      console.error('Failed to load image for editing:', err);
+      setError('이미지를 불러올 수 없습니다');
+    }
+  }, []);
+
   const handleUpscale = useCallback(async (imageUrl: string) => {
       // 업스케일 비용 고정 5토큰
       const upscaleCost = 5;
@@ -427,55 +456,63 @@ const AppContent: React.FC = () => {
   const disabledReason = !user ? t.disabledReasonLogin : images.length === 0 ? t.disabledReasonImage : null;
 
   return (
-    <div className="min-h-screen bg-[#FDF6E3] text-[#212121] flex flex-col">
-      <header className="bg-[#FDF6E3] border-b-2 border-black sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <LogoIcon />
-              <h1 className="font-press-start text-lg md:text-xl text-black flex items-center gap-1">
-                <span>PIXEL-EDITOR</span>
-                <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {user && <div ref={balanceRef}><TokenBalance /></div>}
+    <div className="min-h-screen bg-[#FDF6E3] text-[#212121] flex">
+      {/* 사이드바 */}
+      <Sidebar
+        activeMode={sidebarMode}
+        onModeChange={setSidebarMode}
+      />
 
-              <div className="flex items-center space-x-1">
-                <button
-                    onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
-                    className="flex items-center justify-center h-10 w-10 rounded-full bg-transparent hover:bg-gray-200 transition-colors font-neodgm text-sm font-bold text-black"
-                    aria-label={t.languageToggle}
-                  >
-                    {language === 'ko' ? 'EN' : 'KO'}
-                  </button>
-                 <button
-                  onClick={() => setIsHelpModalOpen(true)}
-                  className="flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                  aria-label={t.help}
-                >
-                  <QuestionMarkCircleIcon className="w-6 h-6" />
-                </button>
-                {user ? (
-                <button
-                  onClick={handleLogout}
-                  className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                  aria-label={t.logout}
-                >
-                  <span className="text-xl" role="img" aria-hidden="true">🔑</span>
-                  <span className="absolute top-1 right-1 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-[#FDF6E3] flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                </button>
-              ) : (
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 flex flex-col">
+        <header className="bg-[#FDF6E3] border-b-2 border-black sticky top-0 z-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-3">
+                <LogoIcon />
+                <h1 className="font-press-start text-lg md:text-xl text-black flex items-center gap-1">
+                  <span>PIXEL-EDITOR</span>
+                  <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                {user && <div ref={balanceRef}><TokenBalance /></div>}
+
+                <div className="flex items-center space-x-1">
                   <button
-                    onClick={handleLogin}
+                      onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
+                      className="flex items-center justify-center h-10 w-10 rounded-full bg-transparent hover:bg-gray-200 transition-colors font-neodgm text-sm font-bold text-black"
+                      aria-label={t.languageToggle}
+                    >
+                      {language === 'ko' ? 'EN' : 'KO'}
+                    </button>
+                   <button
+                    onClick={() => setIsHelpModalOpen(true)}
+                    className="flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
+                    aria-label={t.help}
+                  >
+                    <QuestionMarkCircleIcon className="w-6 h-6" />
+                  </button>
+                  {user ? (
+                  <button
+                    onClick={handleLogout}
                     className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                    aria-label={t.login}
+                    aria-label={t.logout}
                   >
                     <span className="text-xl" role="img" aria-hidden="true">🔑</span>
+                    <span className="absolute top-1 right-1 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-[#FDF6E3] flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  </button>
+                ) : (
+                    <button
+                      onClick={handleLogin}
+                      className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
+                      aria-label={t.login}
+                    >
+                      <span className="text-xl" role="img" aria-hidden="true">🔑</span>
                     <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#FDF6E3]" />
                   </button>
                 )}
@@ -485,56 +522,105 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-1/3 flex flex-col gap-6">
-            <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000]">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-black font-neodgm">{t.uploadTitle}</h2>
-                 <button onClick={() => setIsDrawingCanvasOpen(true)} className="flex items-center gap-1.5 text-base text-[#2E7D73] hover:underline transition-colors" aria-label={t.openCanvas}>
-                    <span role="img" aria-label="Pencil" className="text-lg">✏️</span>
-                    <span>{t.draw}</span>
-                </button>
+        {/* 모바일용 모드 탭 */}
+        <div className="lg:hidden flex border-b-2 border-black bg-gray-100">
+          <button
+            onClick={() => setSidebarMode('create')}
+            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
+              sidebarMode === 'create' ? 'bg-[#E57A77] text-white' : 'bg-white'
+            }`}
+          >
+            ✨ Create
+          </button>
+          <button
+            onClick={() => setSidebarMode('edit')}
+            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
+              sidebarMode === 'edit' ? 'bg-[#E57A77] text-white' : 'bg-white'
+            }`}
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => setSidebarMode('chat')}
+            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
+              sidebarMode === 'chat' ? 'bg-[#E57A77] text-white' : 'bg-white'
+            }`}
+          >
+            💬 Chat
+          </button>
+        </div>
+
+        <main className="flex-grow flex flex-col lg:flex-row overflow-hidden">
+          {/* 좌측 입력 영역 */}
+          <div className="w-full lg:w-1/3 p-4 lg:border-r-2 border-black overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
+            {/* 타이틀 카드 */}
+            <div className="border-2 border-black bg-[#E57A77] text-white p-3 mb-4">
+              <h2 className="text-lg font-bold font-neodgm">
+                {sidebarMode === 'create' ? t.createImageTitle : sidebarMode === 'edit' ? t.editImageTitle : t.chatEditTitle}
+              </h2>
+            </div>
+
+            {/* 모드별 입력 컴포넌트 */}
+            <div className="mb-4">
+              {sidebarMode === 'create' && (
+                <CreateMode
+                  onImageCreated={(file) => setImages([file])}
+                  isDrawingCanvasOpen={isDrawingCanvasOpen}
+                  setIsDrawingCanvasOpen={setIsDrawingCanvasOpen}
+                />
+              )}
+              {sidebarMode === 'edit' && (
+                <EditMode
+                  images={images}
+                  onImagesChange={setImages}
+                  onOpenDrawing={() => setIsDrawingCanvasOpen(true)}
+                />
+              )}
+              {sidebarMode === 'chat' && (
+                <div className="text-center p-8">
+                  <div className="text-6xl mb-4">🚧</div>
+                  <h3 className="text-xl font-bold mb-2 font-neodgm">준비 중</h3>
+                  <p className="text-gray-600">이 기능은 곧 출시됩니다!</p>
+                </div>
+              )}
+            </div>
+
+            {/* 컨트롤 패널 - Create/Edit 모드에서 표시 */}
+            {images.length > 0 && (sidebarMode === 'edit' || sidebarMode === 'create') && (
+              <div className="border-2 border-black bg-[#FFFBF2] p-3">
+                <h3 className="text-base font-bold mb-3 font-neodgm">📝 편집 설정</h3>
+                <Controls
+                  onGenerate={handleGenerate}
+                  onSuggest={handleSuggestion}
+                  isLoading={isLoading}
+                  disabledReason={disabledReason}
+                  prompt={prompt}
+                  setPrompt={setPrompt}
+                  creativity={creativity}
+                  setCreativity={setCreativity}
+                  selectedPresets={selectedPresets}
+                  setSelectedPresets={setSelectedPresets}
+                  numberOfOutputs={numberOfOutputs}
+                  setNumberOfOutputs={setNumberOfOutputs}
+                  selectedPresetOptionIds={selectedPresetOptionIds}
+                  setSelectedPresetOptionIds={setSelectedPresetOptionIds}
+                  model={model}
+                  setModel={setModel}
+                  aspectRatio={aspectRatio}
+                  setAspectRatio={setAspectRatio}
+                  resolution={resolution}
+                  setResolution={setResolution}
+                  generateBtnRef={generateBtnRef}
+                  mode={sidebarMode}
+                />
               </div>
-              <ImageUploader
-                files={images}
-                onFilesChange={setImages}
-                multiple={true}
-                label={t.uploaderLabel}
-              />
-              <p className="text-sm text-gray-700 mt-3">{t.uploaderDescription}</p>
-            </div>
-            <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000] sticky top-20">
-               <h2 className="text-xl font-semibold text-black mb-4 font-neodgm">{t.editTitle}</h2>
-              <Controls
-                onGenerate={handleGenerate}
-                onSuggest={handleSuggestion}
-                isLoading={isLoading}
-                disabledReason={disabledReason}
-                prompt={prompt}
-                setPrompt={setPrompt}
-                creativity={creativity}
-                setCreativity={setCreativity}
-                selectedPresets={selectedPresets}
-                setSelectedPresets={setSelectedPresets}
-                numberOfOutputs={numberOfOutputs}
-                setNumberOfOutputs={setNumberOfOutputs}
-                selectedPresetOptionIds={selectedPresetOptionIds}
-                setSelectedPresetOptionIds={setSelectedPresetOptionIds}
-                model={model}
-                setModel={setModel}
-                aspectRatio={aspectRatio}
-                setAspectRatio={setAspectRatio}
-                resolution={resolution}
-                setResolution={setResolution}
-                generateBtnRef={generateBtnRef}
-              />
-            </div>
+            )}
           </div>
 
-          <div className="lg:w-2/3">
-            <div className="p-6 border-2 border-black shadow-[4px_4px_0_0_#000] min-h-[600px] sticky top-20 flex flex-col">
-               <div className="flex border-b-2 border-black mb-4">
+          {/* 우측 결과 영역 */}
+          <div className="flex-1 p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
+            <div className="border-2 border-black bg-[#FFFBF2] flex flex-col" style={{ height: 'calc(100vh - 96px)' }}>
+              <div className="flex border-b-2 border-black">
                 <TabButton
                   label={t.resultsTab}
                   isActive={activeTab === 'results'}
@@ -546,33 +632,34 @@ const AppContent: React.FC = () => {
                   onClick={() => setActiveTab('history')}
                 />
               </div>
-              <div className="flex-grow overflow-y-auto pr-2 -mr-2">
-                 {activeTab === 'results' ? (
-                    <OutputViewer
-                      isLoading={isLoading}
-                      images={generatedImages}
-                      error={error}
-                      tokenUsage={lastTokenUsage}
-                      sessionTokenUsage={sessionTokenUsage}
-                      onResetSessionUsage={handleResetSessionUsage}
-                      onUpscale={handleUpscale}
-                      skeletonCount={skeletonCount}
-                      lastGenerationInfo={lastGenerationInfo}
-                      lastUpscaleInfo={lastUpscaleInfo}
-                    />
-                  ) : (
-                    <HistoryPanel
-                      history={history}
-                      onLoad={handleLoadHistory}
-                      onDelete={handleDeleteHistory}
-                    />
-                  )}
+              <div className="flex-grow overflow-y-auto p-4">
+                {activeTab === 'results' ? (
+                  <OutputViewer
+                    isLoading={isLoading}
+                    images={generatedImages}
+                    error={error}
+                    tokenUsage={lastTokenUsage}
+                    sessionTokenUsage={sessionTokenUsage}
+                    onResetSessionUsage={handleResetSessionUsage}
+                    onUpscale={handleUpscale}
+                    onEditImage={handleEditImage}
+                    skeletonCount={skeletonCount}
+                    lastGenerationInfo={lastGenerationInfo}
+                    lastUpscaleInfo={lastUpscaleInfo}
+                  />
+                ) : (
+                  <HistoryPanel
+                    history={history}
+                    onLoad={handleLoadHistory}
+                    onDelete={handleDeleteHistory}
+                  />
+                )}
               </div>
             </div>
           </div>
-        </div>
-      </main>
-      
+        </main>
+      </div>
+
       <DrawingCanvas 
         isOpen={isDrawingCanvasOpen}
         onClose={() => setIsDrawingCanvasOpen(false)}
