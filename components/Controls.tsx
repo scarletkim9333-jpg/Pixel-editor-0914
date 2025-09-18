@@ -148,9 +148,13 @@ export const Controls: React.FC<ControlsProps> = ({
   
   const handleModelClick = (targetModel: ModelId) => {
     setModel(targetModel);
-    if (targetModel === 'seedream' && resolution === '1k') {
-        setResolution('2k');
+    if (targetModel === 'seedream') {
+        // Seedream은 2K 이상만 지원
+        if (resolution === '1k') {
+            setResolution('2k');
+        }
     } else if (targetModel === 'nanobanana') {
+        // NanoBanana는 1K 고정
         setResolution('1k');
     }
   };
@@ -167,7 +171,7 @@ export const Controls: React.FC<ControlsProps> = ({
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1">
-          <label htmlFor="prompt" className="font-medium text-black text-base">{t.promptLabel}</label>
+          <label htmlFor="prompt" className="font-medium text-black text-base font-neodgm">• {t.promptLabel}</label>
           <div className="relative">
             <textarea
               ref={textareaRef}
@@ -251,7 +255,7 @@ export const Controls: React.FC<ControlsProps> = ({
           onClick={() => setShowPresets(!showPresets)}
           className="w-full flex justify-between items-center py-1"
         >
-          <span className="font-medium text-black text-base">{t.presetsLabel}</span>
+          <span className="font-medium text-black text-base font-neodgm">• {t.presetsLabel}</span>
           <ChevronDownIcon className={`w-5 h-5 text-gray-600 transition-transform ${showPresets ? 'rotate-180' : ''}`} />
         </button>
 
@@ -269,7 +273,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 }`}
               >
                 <p className="font-semibold text-black text-lg font-neodgm">{preset.name}</p>
-                <p className="text-sm text-gray-700 whitespace-pre-line">{preset.description}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-line font-neodgm">{preset.description}</p>
               </button>
             ))}
           </div>
@@ -278,7 +282,7 @@ export const Controls: React.FC<ControlsProps> = ({
 
       {selectedPreset?.id === 'figurine' && selectedPreset.options && (
         <div className="space-y-2">
-          <label className="font-medium text-black text-base">{t.styleLabel} ({selectedPresetOptionIds.length})</label>
+          <label className="font-medium text-black text-base font-neodgm">• {t.styleLabel} ({selectedPresetOptionIds.length})</label>
           <div className="grid grid-cols-2 gap-3">
             {selectedPreset.options.map(option => (
               <button
@@ -300,14 +304,14 @@ export const Controls: React.FC<ControlsProps> = ({
 
       {selectedPreset?.id === 'angle_changer' && (
         <div className="space-y-2">
-          <label className="font-medium text-black text-base">{t.outputsLabel}</label>
+          <label className="font-medium text-black text-base font-neodgm">• {t.outputsLabel}</label>
           <div className="grid grid-cols-2 gap-2">
               {[4, 6].map(num => (
                 <OptionButton
                     key={num}
                     onClick={() => setNumberOfOutputs(num)}
                     isActive={numberOfOutputs === num}
-                    className="text-xl"
+                    className="text-xl font-neodgm"
                 >
                     {num}
                 </OptionButton>
@@ -317,36 +321,45 @@ export const Controls: React.FC<ControlsProps> = ({
       )}
 
       <div className="space-y-2">
-          <label className="font-medium text-black text-base">{t.modelLabel}</label>
+          <label className="font-medium text-black text-base font-neodgm">• {t.modelLabel}</label>
           <div className="grid grid-cols-2 gap-2">
-              <OptionButton onClick={() => handleModelClick('nanobanana')} isActive={model === 'nanobanana'}>
+              <OptionButton onClick={() => handleModelClick('nanobanana')} isActive={model === 'nanobanana'} className="font-neodgm">
                   NanoBanana
               </OptionButton>
-              <OptionButton onClick={() => handleModelClick('seedream')} isActive={model === 'seedream'}>
+              <OptionButton onClick={() => handleModelClick('seedream')} isActive={model === 'seedream'} className="font-neodgm">
                   Seedance
               </OptionButton>
           </div>
       </div>
       
       <div className="space-y-2">
-        <label className="font-medium text-black text-base">{t.resolutionLabel}</label>
-        <div className={`grid ${model === 'nanobanana' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
-            {model === 'nanobanana' && (
-              <OptionButton onClick={() => setResolution('1k')} isActive={resolution === '1k'}>
-                  1K
-              </OptionButton>
-            )}
-            <OptionButton onClick={() => setResolution('2k')} isActive={resolution === '2k'}>
+        <label className="font-medium text-black text-base font-neodgm">• {t.resolutionLabel}</label>
+        {model === 'nanobanana' ? (
+          <div className="space-y-2">
+            <div className="bg-gray-100 border border-gray-300 p-3 rounded">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-black font-neodgm">1K (1024px) 고정</span>
+                <span className="text-xs text-black font-neodgm">NanoBanana 기본 해상도</span>
+              </div>
+              <p className="text-xs text-black mt-2 font-neodgm">
+                💡 더 높은 해상도가 필요하다면 이미지 생성 후 업스케일을 이용해주세요! (1토큰)
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <OptionButton onClick={() => setResolution('2k')} isActive={resolution === '2k'} className="font-neodgm">
                 2K
             </OptionButton>
-            <OptionButton onClick={() => setResolution('4k')} isActive={resolution === '4k'}>
+            <OptionButton onClick={() => setResolution('4k')} isActive={resolution === '4k'} className="font-neodgm">
                 4K
             </OptionButton>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
-          <label className="font-medium text-black text-base">Output Size</label>
+          <label className="font-medium text-black text-base font-neodgm">• Output Size</label>
           <OutputSizeDropdown
             value={aspectRatio}
             onChange={setAspectRatio}
@@ -354,7 +367,7 @@ export const Controls: React.FC<ControlsProps> = ({
             model={model}
           />
           {getAspectRatioTokenCost(aspectRatio, model) > 0 && (
-            <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+            <div className="text-sm text-black bg-gray-100 p-2 rounded border border-gray-300 font-neodgm">
               추가 {getAspectRatioTokenCost(aspectRatio, model)}토큰 소모
               {model === 'nanobanana' && ' (NanoBanana 종횡비 선택)'}
             </div>
@@ -368,7 +381,7 @@ export const Controls: React.FC<ControlsProps> = ({
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="w-full flex justify-between items-center py-1"
         >
-          <span className="font-medium text-black text-base">고급설정</span>
+          <span className="font-medium text-black text-base font-neodgm">• 고급설정</span>
           <ChevronDownIcon className={`w-5 h-5 text-gray-600 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
         </button>
 
