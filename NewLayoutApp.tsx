@@ -331,14 +331,17 @@ const NewLayoutAppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-neodgm">
       {/* 헤더 */}
-      <header className="bg-white border-b-4 border-black shadow-lg font-neodgm">
+      <header className="bg-white border-b-4 border-black shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* 로고 영역 */}
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-pink-500 border-2 border-black"></div>
+              <svg className="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
               <h1 className="text-2xl font-bold text-black">PIXEL EDITOR</h1>
             </div>
 
@@ -346,23 +349,31 @@ const NewLayoutAppContent: React.FC = () => {
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg border-2 border-black">
               <button
                 onClick={() => setCurrentMode('create')}
-                className={`px-6 py-2 text-sm font-semibold rounded transition-all ${
+                className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
                   currentMode === 'create'
                     ? 'bg-white border-2 border-black shadow-md text-black'
                     : 'text-gray-600 hover:text-black'
                 }`}
+                title={t.createImage}
               >
-                {t.createImage}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">{t.createImage}</span>
               </button>
               <button
                 onClick={() => setCurrentMode('edit')}
-                className={`px-6 py-2 text-sm font-semibold rounded transition-all ${
+                className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
                   currentMode === 'edit'
                     ? 'bg-white border-2 border-black shadow-md text-black'
                     : 'text-gray-600 hover:text-black'
                 }`}
+                title={t.editImage}
               >
-                {t.editImage}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span className="hidden sm:inline">{t.editImage}</span>
               </button>
             </div>
 
@@ -380,40 +391,44 @@ const NewLayoutAppContent: React.FC = () => {
               </button>
 
               {/* 로그인/로그아웃 버튼 */}
-              {user ? (
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-semibold border-2 border-black rounded bg-yellow-100 hover:bg-yellow-200 transition-colors"
-                >
-                  {t.logout}
-                </button>
-              ) : (
-                <button
-                  onClick={handleLogin}
-                  className="px-4 py-2 text-sm font-semibold border-2 border-black rounded bg-yellow-100 hover:bg-yellow-200 transition-colors"
-                >
-                  {t.login}
-                </button>
-              )}
+              <button
+                onClick={user ? handleLogout : handleLogin}
+                className={`p-2 border-2 border-black rounded transition-colors flex items-center space-x-2 ${
+                  user
+                    ? 'bg-green-100 hover:bg-green-200 text-green-700'
+                    : 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
+                }`}
+                title={user ? t.logout : t.login}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <span className="hidden lg:inline">{user ? t.logout : t.login}</span>
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       {/* 메인 레이아웃 */}
-      <main className="flex h-screen pt-16">
+      <main className="flex flex-col md:flex-row min-h-screen pt-16">
         {/* 좌측 Input 패널 */}
-        <div className="w-1/2 p-4">
-          <div className="pixel-panel h-full flex flex-col">
+        <div className="w-full md:w-1/2 p-4 h-screen md:h-auto">
+          <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
-              <h2>📝 INPUT</h2>
+              <h2 className="flex items-center space-x-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span>INPUT</span>
+              </h2>
             </div>
 
             <div className="pixel-panel-content flex-1 overflow-y-auto">
               {/* 프롬프트 입력 영역 */}
               <div className="mb-6">
-                <label className="block text-sm font-bold mb-2 font-neodgm">
+                <label className="block text-sm font-bold mb-2">
                   {t.prompt}
                 </label>
                 <div className="speech-bubble">
@@ -429,7 +444,7 @@ const NewLayoutAppContent: React.FC = () => {
               {/* 이미지 업로드 영역 (Edit 모드) */}
               {currentMode === 'edit' && (
                 <div className="mb-6">
-                  <label className="block text-sm font-bold mb-2 font-neodgm">
+                  <label className="block text-sm font-bold mb-2">
                     {t.uploadImage}
                   </label>
                   <div className="pixel-border p-4 rounded-lg">
@@ -444,10 +459,10 @@ const NewLayoutAppContent: React.FC = () => {
 
               {/* 기본 설정 */}
               <div className="mb-6">
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 gap-4 mb-4">
                   {/* 모델 선택 */}
                   <div>
-                    <label className="block text-sm font-bold mb-2 font-neodgm">
+                    <label className="block text-sm font-bold mb-2">
                       {t.model}
                     </label>
                     <select
@@ -455,26 +470,97 @@ const NewLayoutAppContent: React.FC = () => {
                       onChange={(e) => setModel(e.target.value as ModelId)}
                       className="pixel-dropdown w-full"
                     >
-                      <option value="nanobanana">NanoBanana</option>
-                      <option value="seedream">Seedream</option>
+                      <option value="nanobanana">NanoBanana (2토큰 기본)</option>
+                      <option value="seedream">Seedream (4토큰 기본)</option>
                     </select>
                   </div>
 
-                  {/* 출력 크기 */}
+                  {/* 종횡비 선택 */}
                   <div>
-                    <label className="block text-sm font-bold mb-2 font-neodgm">
-                      {t.outputSize}
+                    <label className="block text-sm font-bold mb-2">
+                      {t.aspectRatioLabel || '종횡비'}
                     </label>
                     <select
                       value={aspectRatio}
                       onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
                       className="pixel-dropdown w-full"
                     >
-                      <option value="auto">{t.outputSizeAuto}</option>
-                      <option value="1:1">{t.outputSizeSquare}</option>
-                      <option value="3:4">{t.outputSizePortrait}</option>
-                      <option value="4:3">{t.outputSizeLandscape}</option>
+                      <option value="auto">{t.outputSizeAuto} (기본)</option>
+                      <option value="1:1">
+                        {t.outputSizeSquare} (1:1)
+                        {model === 'nanobanana' && ' +2토큰'}
+                      </option>
+                      <option value="3:4">
+                        {t.outputSizePortrait} (3:4)
+                        {model === 'nanobanana' && ' +2토큰'}
+                      </option>
+                      <option value="4:3">
+                        {t.outputSizeLandscape} (4:3)
+                        {model === 'nanobanana' && ' +2토큰'}
+                      </option>
+                      <option value="9:16">
+                        세로 모바일 (9:16)
+                        {model === 'nanobanana' && ' +2토큰'}
+                      </option>
+                      <option value="16:9">
+                        가로 와이드 (16:9)
+                        {model === 'nanobanana' && ' +2토큰'}
+                      </option>
                     </select>
+                  </div>
+
+                  {/* 해상도 선택 */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2">
+                      {t.resolutionLabel || '해상도'}
+                    </label>
+                    <select
+                      value={resolution}
+                      onChange={(e) => setResolution(e.target.value as Resolution)}
+                      className="pixel-dropdown w-full"
+                    >
+                      <option value="1k">1K (1024px) - 기본</option>
+                      {model === 'seedream' && (
+                        <>
+                          <option value="2k">2K (2048px) - 고해상도</option>
+                          <option value="4k">4K (4096px) - 최고화질</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* 출력 수량 */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2">
+                      출력 수량
+                    </label>
+                    <select
+                      value={numberOfOutputs}
+                      onChange={(e) => setNumberOfOutputs(parseInt(e.target.value))}
+                      className="pixel-dropdown w-full"
+                    >
+                      <option value={1}>1개 이미지</option>
+                      <option value={2}>2개 이미지</option>
+                      <option value={3}>3개 이미지</option>
+                      <option value={4}>4개 이미지</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 토큰 비용 요약 */}
+                <div className="pixel-border p-3 bg-yellow-50 rounded-lg">
+                  <div className="text-sm">
+                    <div className="font-bold mb-2">🪙 토큰 비용 계산</div>
+                    <div className="space-y-1 text-xs">
+                      <div>• 모델 기본 비용: {model === 'nanobanana' ? '2' : '4'}토큰</div>
+                      {aspectRatio !== 'auto' && model === 'nanobanana' && (
+                        <div>• 종횡비 추가 비용: +2토큰</div>
+                      )}
+                      <div>• 출력 수량: ×{numberOfOutputs}</div>
+                      <div className="border-t pt-1 font-bold">
+                        총 필요 토큰: {requiredTokens}토큰
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -494,7 +580,10 @@ const NewLayoutAppContent: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span>🎨</span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5 7-5v10z" />
+                        </svg>
                         <span>
                           {currentMode === 'create' ? t.generateImage : t.editImage}
                           {' ('}{requiredTokens} {t.tokens}{')'}
@@ -509,12 +598,17 @@ const NewLayoutAppContent: React.FC = () => {
         </div>
 
         {/* 우측 Output 패널 */}
-        <div className="w-1/2 p-4">
-          <div className="pixel-panel h-full flex flex-col">
+        <div className="w-full md:w-1/2 p-4 h-screen md:h-auto">
+          <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
               <div className="flex items-center justify-between">
-                <h2>🖼️ OUTPUT</h2>
+                <h2 className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>OUTPUT</span>
+                </h2>
 
                 {/* 탭 전환 */}
                 <div className="flex space-x-1 bg-white bg-opacity-30 p-1 rounded">
@@ -576,11 +670,13 @@ const NewLayoutAppContent: React.FC = () => {
                     ) : (
                       <div className="h-full flex items-center justify-center">
                         <div className="text-center">
-                          <div className="text-6xl mb-4">🎨</div>
-                          <h3 className="text-xl font-bold mb-2 font-neodgm">
+                          <svg className="w-16 h-16 mb-4 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <h3 className="text-xl font-bold mb-2">
                             {t.noImagesYet}
                           </h3>
-                          <p className="text-gray-600 font-neodgm">
+                          <p className="text-gray-600">
                             {t.enterPromptHint}
                           </p>
                         </div>
@@ -593,7 +689,7 @@ const NewLayoutAppContent: React.FC = () => {
                           <div className="flex gap-3">
                             <img src={item.images[0]} alt="History" className="w-16 h-16 rounded object-cover" />
                             <div className="flex-1">
-                              <p className="font-neodgm text-sm font-bold truncate">{item.request.prompt}</p>
+                              <p className="text-sm font-bold truncate">{item.request.prompt}</p>
                               <p className="text-xs text-gray-500">{new Date(item.timestamp).toLocaleDateString()}</p>
                             </div>
                           </div>
