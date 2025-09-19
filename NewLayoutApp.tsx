@@ -9,6 +9,7 @@ import * as historyService from './services/historyService';
 import { fileToDataURL, dataURLtoFile } from './utils';
 import type { GenerateImageRequest, TokenUsage, HistoryItem, Preset, AspectRatio, ModelId, Resolution } from './types';
 import type { Translation } from './translations';
+import { getPresets } from './translations';
 import { HelpModal } from './components/HelpModal';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
 import { PaymentCallback } from './src/components/PaymentCallback';
@@ -23,11 +24,24 @@ const NewLayoutAppContent: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<'create' | 'edit'>('create');
   const [prompt, setPrompt] = useState('');
 
+  // 모드 변경 시 프리셋 초기화
+  const handleModeChange = (mode: 'create' | 'edit') => {
+    setCurrentMode(mode);
+    if (mode === 'create') {
+      // Create 모드로 변경 시 프리셋 초기화
+      setSelectedPresets([]);
+      setSelectedPresetOptionIds([]);
+      setNumberOfOutputs(1);
+    }
+  };
+
   // 이미지 관련 상태
   const [images, setImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [isUpscaling, setIsUpscaling] = useState(false);
+  const [upscalingImageIndex, setUpscalingImageIndex] = useState<number | null>(null);
 
   // 토큰 관련 상태
   const [lastTokenUsage, setLastTokenUsage] = useState<TokenUsage | null>(null);
@@ -146,6 +160,44 @@ const NewLayoutAppContent: React.FC = () => {
       window.removeEventListener('paste', handlePaste);
     };
   }, []);
+
+  // 프리셋 데이터
+  const PRESETS = getPresets(t);
+
+  // 프리셋 옵션 클릭 핸들러
+  const handleOptionClick = (optionId: string) => {
+    const selectedPreset = selectedPresets[0];
+
+    if (selectedPreset?.id === 'angle_changer') {
+      // 멀티 앵글도 피규어화처럼 다중 선택
+      setSelectedPresetOptionIds(prev => {
+        let newIds;
+        if (prev.includes(optionId)) {
+          newIds = prev.filter(id => id !== optionId);
+        } else {
+          newIds = [...prev, optionId];
+        }
+
+        // 선택된 앵글 수만큼 출력 수량 설정 (최대 6개)
+        setNumberOfOutputs(Math.min(6, Math.max(1, newIds.length)));
+        return newIds;
+      });
+    } else if (selectedPreset?.id === 'figurine') {
+      // 피규어화는 다중 선택
+      setSelectedPresetOptionIds(prev => {
+        let newIds;
+        if (prev.includes(optionId)) {
+          newIds = prev.filter(id => id !== optionId);
+        } else {
+          newIds = [...prev, optionId];
+        }
+
+        // 선택된 스타일 수만큼 출력 수량 설정
+        setNumberOfOutputs(Math.max(1, newIds.length));
+        return newIds;
+      });
+    }
+  };
 
   // 토큰 비용 계산
   useEffect(() => {
@@ -305,7 +357,7 @@ const NewLayoutAppContent: React.FC = () => {
       setImages([file]);
 
       // Edit 모드로 전환
-      setCurrentMode('edit');
+      handleModeChange('edit');
 
       // 탭을 results로 설정
       setActiveTab('results');
@@ -314,6 +366,61 @@ const NewLayoutAppContent: React.FC = () => {
       setError('이미지를 불러올 수 없습니다');
     }
   }, []);
+
+  // 업스케일 핸들러
+  const handleUpscale = useCallback(async (imageUrl: string, imageIndex: number) => {
+    if (!user) {
+      setError(t.errorLogin);
+      return;
+    }
+
+    // 업스케일 비용: 1토큰
+    const upscaleCost = 1;
+
+    if (balance === null || balance < upscaleCost) {
+      setError(`업스케일을 위한 토큰이 부족합니다. (필요: ${upscaleCost}, 보유: ${balance || 0})`);
+      setRequiredTokens(upscaleCost);
+      setIsTokenPurchaseModalOpen(true);
+      return;
+    }
+
+    setIsUpscaling(true);
+    setUpscalingImageIndex(imageIndex);
+    setError(null);
+
+    try {
+      // 여기서 실제 업스케일 API를 호출해야 합니다
+      // 현재는 데모용으로 원본 이미지를 그대로 반환합니다
+      console.log('업스케일 시작:', imageUrl);
+
+      // 실제 구현에서는 geminiService.ts에 업스케일 함수를 추가하고 호출해야 합니다
+      // const upscaledResult = await upscaleImageWithGemini(imageUrl);
+
+      // 데모용: 2초 대기 후 원본 이미지 반환
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 업스케일 성공 후 토큰 차감
+      await useTokensFunction(upscaleCost, '이미지 업스케일');
+
+      // 업스케일 정보 저장
+      setLastUpscaleInfo({
+        model: 'KIE NanoBanana Upscale',
+        cost: upscaleCost,
+        count: 1
+      });
+
+      // 실제로는 업스케일된 이미지 URL로 교체해야 합니다
+      // 데모용으로는 원본 이미지 유지
+      console.log('업스케일 완료');
+
+    } catch (err) {
+      console.error('업스케일 실패:', err);
+      setError('업스케일에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUpscaling(false);
+      setUpscalingImageIndex(null);
+    }
+  }, [user, balance, t, useTokensFunction]);
 
   // 이미지 생성 버튼 클릭 핸들러
   const handleGenerate = () => {
@@ -348,7 +455,7 @@ const NewLayoutAppContent: React.FC = () => {
             {/* 중앙 탭 영역 */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg border-2 border-black">
               <button
-                onClick={() => setCurrentMode('create')}
+                onClick={() => handleModeChange('create')}
                 className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
                   currentMode === 'create'
                     ? 'bg-white border-2 border-black shadow-md text-black'
@@ -362,7 +469,7 @@ const NewLayoutAppContent: React.FC = () => {
                 <span className="hidden sm:inline">{t.createImage}</span>
               </button>
               <button
-                onClick={() => setCurrentMode('edit')}
+                onClick={() => handleModeChange('edit')}
                 className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
                   currentMode === 'edit'
                     ? 'bg-white border-2 border-black shadow-md text-black'
@@ -475,6 +582,78 @@ const NewLayoutAppContent: React.FC = () => {
                     </select>
                   </div>
 
+                  {/* 프리셋 선택 (Edit 모드에서만 표시) */}
+                  {currentMode === 'edit' && (
+                    <div>
+                      <label className="block text-sm font-bold mb-2">
+                        {t.presetsLabel || '프리셋'}
+                      </label>
+                      <select
+                        value={selectedPresets[0]?.id || ''}
+                        onChange={(e) => {
+                          if (e.target.value === '') {
+                            setSelectedPresets([]);
+                            setSelectedPresetOptionIds([]);
+                            setNumberOfOutputs(1);
+                          } else {
+                            const preset = PRESETS.find(p => p.id === e.target.value);
+                            if (preset) {
+                              setSelectedPresets([preset]);
+                              setSelectedPresetOptionIds([]);
+                              setNumberOfOutputs(1);
+                            }
+                          }
+                        }}
+                        className="pixel-dropdown w-full"
+                      >
+                        <option value="">프리셋 없음</option>
+                        {PRESETS.map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {preset.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* 프리셋 옵션 (선택된 프리셋이 있을 때만 표시) */}
+                  {currentMode === 'edit' && selectedPresets.length > 0 && selectedPresets[0].options && (
+                    <div>
+                      <label className="block text-sm font-bold mb-2">
+                        {selectedPresets[0].id === 'angle_changer' ? '앵글 선택' : (t.styleLabel || '스타일 선택')}
+                        {selectedPresets[0].id === 'angle_changer' && ` (${selectedPresetOptionIds.length}/6)`}
+                      </label>
+                      <div className={`grid gap-2 ${
+                        selectedPresets[0].id === 'angle_changer' ? 'grid-cols-3' : 'grid-cols-2'
+                      }`}>
+                        {selectedPresets[0].options.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => handleOptionClick(option.id)}
+                            className={`p-2 border-2 border-black rounded text-xs transition-all text-left ${
+                              selectedPresetOptionIds.includes(option.id)
+                                ? 'bg-green-200 shadow-[1px_1px_0_0_#000]'
+                                : 'bg-white hover:bg-gray-50 shadow-[1px_1px_0_0_#ccc]'
+                            }`}
+                          >
+                            <span className="font-semibold">
+                              {t[option.nameKey as keyof typeof t] || option.nameKey}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      {selectedPresetOptionIds.length === 0 && (
+                        <p className="text-xs text-red-600 mt-2">
+                          {selectedPresets[0].id === 'angle_changer'
+                            ? '앵글을 선택하세요'
+                            : (t.figurineNoStyleSelected || '스타일을 선택하세요')
+                          }
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* 종횡비 선택 */}
                   <div>
                     <label className="block text-sm font-bold mb-2">
@@ -538,14 +717,21 @@ const NewLayoutAppContent: React.FC = () => {
                       value={numberOfOutputs}
                       onChange={(e) => setNumberOfOutputs(parseInt(e.target.value))}
                       className="pixel-dropdown w-full"
+                      disabled={selectedPresets.length > 0}
                     >
                       <option value={1}>1개 이미지</option>
                       <option value={2}>2개 이미지</option>
                       <option value={3}>3개 이미지</option>
                       <option value={4}>4개 이미지</option>
                     </select>
+                    {selectedPresets.length > 0 && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        프리셋 선택 시 출력 수량이 자동 설정됩니다
+                      </p>
+                    )}
                   </div>
                 </div>
+
 
                 {/* 토큰 비용 요약 */}
                 <div className="pixel-border p-3 bg-yellow-50 rounded-lg">
@@ -557,6 +743,14 @@ const NewLayoutAppContent: React.FC = () => {
                         <div>• 종횡비 추가 비용: +2토큰</div>
                       )}
                       <div>• 출력 수량: ×{numberOfOutputs}</div>
+                      {selectedPresets.length > 0 && (
+                        <div className="text-blue-600">
+                          • 프리셋: {selectedPresets[0].name}
+                          {selectedPresets[0].id === 'figurine' && selectedPresetOptionIds.length > 0 && (
+                            <span> ({selectedPresetOptionIds.length}개 스타일)</span>
+                          )}
+                        </div>
+                      )}
                       <div className="border-t pt-1 font-bold">
                         총 필요 토큰: {requiredTokens}토큰
                       </div>
@@ -569,7 +763,13 @@ const NewLayoutAppContent: React.FC = () => {
               <div className="mt-auto pt-4">
                 <button
                   onClick={handleGenerate}
-                  disabled={!prompt.trim() || isLoading || !user || (currentMode === 'edit' && images.length === 0)}
+                  disabled={
+                    !prompt.trim() ||
+                    isLoading ||
+                    !user ||
+                    (currentMode === 'edit' && images.length === 0) ||
+                    (currentMode === 'edit' && selectedPresets.length > 0 && selectedPresetOptionIds.length === 0)
+                  }
                   className="pixel-button w-full py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-center space-x-2">
@@ -655,6 +855,25 @@ const NewLayoutAppContent: React.FC = () => {
                                 className="flex-1 pixel-button text-sm py-2"
                               >
                                 {t.edit}
+                              </button>
+                              <button
+                                onClick={() => handleUpscale(imageUrl, index)}
+                                disabled={isUpscaling}
+                                className="flex-1 pixel-button text-sm py-2 disabled:opacity-50"
+                              >
+                                {isUpscaling && upscalingImageIndex === index ? (
+                                  <div className="flex items-center justify-center space-x-1">
+                                    <span className="animate-spin">⚙️</span>
+                                    <span>업스케일 중...</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center space-x-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                    </svg>
+                                    <span>업스케일 (1토큰)</span>
+                                  </div>
+                                )}
                               </button>
                               <a
                                 href={imageUrl}

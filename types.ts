@@ -4,6 +4,7 @@ export interface PresetOption {
   id: string;
   nameKey: keyof Translation;
   prompt: string;
+  category?: 'count' | 'style';
 }
 
 export interface Preset {

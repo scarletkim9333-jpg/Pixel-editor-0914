@@ -62,6 +62,13 @@ export const translations = {
     figurineOptionDeskDark: "책상(밤)",
     figurineOptionShowcase: "진열장",
     figurineOptionDesktop: "데스크탑",
+    // Multi-angle options (6 basic angles)
+    angleWide: "와이드 앵글",
+    angleSide: "측면",
+    angleBack: "후면",
+    angleThreeQuarter: "3/4 각도",
+    angleTopDown: "위에서",
+    angleLowAngle: "아래에서",
     // New Layout UI
     createImage: '새 이미지 생성',
     editImage: '이미지 편집',
@@ -220,6 +227,13 @@ export const translations = {
     figurineOptionDeskDark: "Desk (Night)",
     figurineOptionShowcase: "Showcase",
     figurineOptionDesktop: "Desktop",
+    // Multi-angle options (6 basic angles)
+    angleWide: "Wide Angle",
+    angleSide: "Side View",
+    angleBack: "Back View",
+    angleThreeQuarter: "3/4 View",
+    angleTopDown: "Top-Down",
+    angleLowAngle: "Low Angle",
     // Output Viewer
     emptyStateTitle: 'Generated images will be shown here',
     emptyStateDescription: 'Upload an image and enter a prompt to start generating.',
@@ -288,7 +302,15 @@ export const getPresets = (t: Translation): Preset[] => [
     id: "angle_changer",
     name: t.presetAngleChangerName,
     description: t.presetAngleChangerDesc,
-    prompt: "Re-render the main subject in {NUM_OUTPUTS} separate images, each from a different camera angle. Do not change the subject's appearance or outfit. Use : {ANGLE_LIST}"
+    prompt: "Re-render the main subject in {NUM_OUTPUTS} separate images, each from different camera angles. Do not change the subject's appearance or outfit. Include these specific angles: {ANGLE_LIST}",
+    options: [
+      { id: 'wide', nameKey: 'angleWide', prompt: "wide-angle view" },
+      { id: 'side', nameKey: 'angleSide', prompt: "side view" },
+      { id: 'back', nameKey: 'angleBack', prompt: "back view" },
+      { id: 'three_quarter', nameKey: 'angleThreeQuarter', prompt: "three-quarter view" },
+      { id: 'top_down', nameKey: 'angleTopDown', prompt: "top-down view" },
+      { id: 'low_angle', nameKey: 'angleLowAngle', prompt: "low-angle view" },
+    ]
   },
   {
     id: "figurine",
