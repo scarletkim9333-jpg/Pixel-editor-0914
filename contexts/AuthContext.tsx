@@ -32,12 +32,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     setLoading(true);
 
-    // Supabase 환경 변수가 없으면 바로 Mock 로그인 활성화
+    // Supabase 환경 변수가 없으면 localStorage에서 로그인 상태 확인
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('dummy')) {
-      console.warn('Supabase not configured, using mock authentication mode');
+      console.warn('Supabase not configured, checking localStorage for auth state');
+
+      // localStorage에서 로그인 상태 확인
+      const savedAuthState = localStorage.getItem('mock-auth-state');
+      if (savedAuthState === 'logged-in') {
+        const mockUser = {
+          id: 'mock-user-123',
+          email: 'test@example.com',
+          user_metadata: {
+            full_name: '테스트 사용자',
+            name: '테스트 사용자'
+          }
+        } as any;
+
+        const mockSession = {
+          user: mockUser,
+          access_token: 'mock-token',
+          refresh_token: 'mock-refresh-token'
+        } as any;
+
+        setUser(mockUser);
+        setSession(mockSession);
+      }
+
       setLoading(false);
       return;
     }
@@ -104,6 +127,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(mockUser);
       setSession(mockSession);
       setLoading(false);
+
+      // localStorage에 로그인 상태 저장
+      localStorage.setItem('mock-auth-state', 'logged-in');
       return;
     }
 
@@ -137,6 +163,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(mockUser);
       setSession(mockSession);
       setLoading(false);
+
+      // localStorage에 로그인 상태 저장
+      localStorage.setItem('mock-auth-state', 'logged-in');
       return;
     }
   }
@@ -151,6 +180,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setSession(null);
       setLoading(false);
+
+      // localStorage에서 로그인 상태 제거
+      localStorage.removeItem('mock-auth-state');
       return;
     }
 
@@ -164,6 +196,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setSession(null);
       setLoading(false);
+
+      // localStorage에서 로그인 상태 제거
+      localStorage.removeItem('mock-auth-state');
       return;
     }
   }

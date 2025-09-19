@@ -125,14 +125,16 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         </span>
       </div>
 
-      {/* 토큰 구매 버튼 (이모지 버전) */}
+      {/* 토큰 구매 버튼 (Heroicon 버전) */}
       <button
         onClick={() => setIsPurchaseModalOpen(true)}
         className="flex items-center justify-center w-10 h-10 bg-transparent hover:bg-gray-100 hover:bg-opacity-20 rounded-full transition-all duration-300 transform hover:scale-110"
         title="픽셀 토큰 충전"
-        style={{ fontFamily: "'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif" }}
       >
-        <span className="text-2xl animate-spin-token">🪙</span>
+        <svg className="w-6 h-6 text-yellow-500 animate-spin-token" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" />
+          <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 14.625v-9.75zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM18.75 9a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75V9z" clipRule="evenodd" />
+        </svg>
       </button>
 
       {/* 토큰 구매 모달 */}

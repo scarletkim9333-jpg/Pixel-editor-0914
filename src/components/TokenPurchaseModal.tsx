@@ -170,7 +170,13 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
       <div className="bg-[#FDF6E3] border-2 border-black shadow-[8px_8px_0_0_#000] max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-black font-neodgm">🪙 토큰 구매</h2>
+            <h2 className="text-2xl font-bold text-black font-neodgm flex items-center space-x-2">
+              <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" />
+                <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 14.625v-9.75zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM18.75 9a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75V9z" clipRule="evenodd" />
+              </svg>
+              <span>토큰 구매</span>
+            </h2>
             <button
               onClick={onClose}
               className="text-2xl font-bold text-black hover:text-gray-600 transition-colors font-neodgm"
@@ -182,8 +188,11 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
 
           {requiredTokens > 0 && (
             <div className="mb-6 p-4 bg-orange-100 border-2 border-orange-300">
-              <p className="text-orange-800 font-semibold font-neodgm">
-                ⚠️ {requiredTokens}토큰이 필요합니다
+              <p className="text-orange-800 font-semibold font-neodgm flex items-center space-x-2">
+                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                </svg>
+                <span>{requiredTokens}토큰이 필요합니다</span>
               </p>
               <p className="text-orange-700 text-sm mt-1 font-neodgm">
                 현재 작업을 완료하려면 추가 토큰이 필요합니다.
@@ -257,7 +266,9 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
             >
               {isProcessing ? (
                 <>
-                  <span className="inline-block animate-spin mr-2">⏳</span>
+                  <svg className="inline-block animate-spin mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   구매 중...
                 </>
               ) : (
@@ -267,7 +278,12 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
           </div>
 
           <div className="mt-4 text-xs text-gray-600 text-center font-neodgm">
-            <p>🔒 안전한 결제가 보장됩니다</p>
+            <p className="flex items-center justify-center space-x-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>안전한 결제가 보장됩니다</span>
+            </p>
             <p>토큰은 구매 즉시 계정에 추가됩니다</p>
           </div>
         </div>
