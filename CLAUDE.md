@@ -285,6 +285,60 @@ NODE_ENV=development
 - **CORS 이슈**: 개발 시 proxy 설정
 - **환경 변수**: .env 파일 누락 확인
 
+### UI 리디자인 중 발생한 에러 및 해결 방법 (2025.09.19)
+
+#### 1. React 컴포넌트 렌더링 에러
+**문제**: `mainImage is not defined` 에러
+```
+App.tsx:194 Uncaught ReferenceError: mainImage is not defined
+```
+**원인**: 컴포넌트 리팩토링 중 변수 정의 누락
+**해결**: 사용되는 곳에서 적절히 변수 정의
+```typescript
+const mainImage = images[0] || null;
+const referenceImages = images.slice(1);
+```
+
+#### 2. 중복 변수 선언 에러
+**문제**: `The symbol "currentMode" has already been declared`
+**원인**: 동일 스코프에서 변수 중복 선언
+**해결**: 기존 선언 제거하고 하나만 유지
+
+#### 3. Import 경로 에러
+**문제**: `The requested module does not provide an export named 'AuthProvider'`
+**원인**: 잘못된 import 경로
+**해결**: 올바른 경로로 수정
+```typescript
+// 잘못된 예
+import { LanguageProvider, AuthProvider } from './contexts/LanguageContext';
+
+// 올바른 예
+import { LanguageProvider } from './contexts/LanguageContext';
+import { AuthProvider } from './contexts/AuthContext';
+```
+
+#### 4. CSS 배경 투명도 문제
+**문제**: 아이보리색 불투명한 화면 오버레이
+**원인**: CSS의 `opacity: 0.1` 속성이 전체 요소에 적용
+**해결**:
+```css
+/* 문제가 된 코드 */
+.pixel-bg {
+  opacity: 0.1; /* 전체 요소를 투명하게 만듦 */
+}
+
+/* 수정된 코드 */
+.pixel-bg {
+  background-color: var(--bg-pattern);
+  /* opacity 제거 */
+}
+```
+
+#### 5. 개발 서버 디버깅 팁
+- **에러 확인**: 브라우저 개발자 도구 Console 탭 활용
+- **단계적 테스트**: 복잡한 컴포넌트는 단순한 테스트 버전으로 먼저 확인
+- **CSS 문제**: 클래스명을 단순한 Tailwind 클래스로 교체해서 테스트
+
 ### 배포 이슈
 - **빌드 에러**: TypeScript 타입 검사
 - **API 연결**: 프로덕션 URL 설정
@@ -303,6 +357,62 @@ NODE_ENV=development
 - **GitHub Issues**: 버그 리포트 및 기능 요청
 - **개발자**: scarletkim9333-jpg
 - **라이선스**: MIT License
+
+---
+
+## 🚧 현재 진행 중인 작업 (2025.09.19)
+
+### UI 리디자인 프로젝트
+**목표**: Fal.ai와 KIE AI 플레이그라운드 스타일의 깔끔한 레이아웃과 픽셀/레트로 감성 결합
+
+#### ✅ 세션 1 완료 (2025.09.19)
+- [x] 현재 UI 구조 분석
+- [x] 새로운 레이아웃 설계 (사이드바 제거 → Input/Output 2패널)
+- [x] 0919.md 작업 계획서 작성
+- [x] 폰트 통일 (Press Start 2P → NeoDunggeunmo 완전 통일)
+- [x] CLAUDE.md 임시 업데이트
+
+#### ✅ 세션 2 완료 (2025.09.19)
+- [x] Header 컴포넌트 생성 (상단 네비게이션)
+- [x] 픽셀 테마 CSS 작성 (pixel-theme.css)
+- [x] InputPanel/OutputPanel 컴포넌트 생성
+- [x] NewLayoutApp.tsx 리팩토링 (새로운 2패널 레이아웃)
+- [x] 개발 서버 테스트 및 에러 해결
+- [x] CSS 투명도 문제 수정 (아이보리 오버레이 제거)
+- [x] 에러 해결 방법 문서화
+
+#### ✅ 세션 3 완료 (2025.09.19)
+- [x] **상태 관리 통합**: App.tsx의 모든 useState를 NewLayoutApp.tsx로 완전 이전
+- [x] **실제 기능 연동**: 이미지 생성/편집 로직 완전 통합
+- [x] **토큰 시스템 연동**: TokenBalance 컴포넌트 및 실시간 비용 표시
+- [x] **히스토리 패널 구현**: Results/History 탭 전환 및 아이템 로드 기능
+- [x] **인증 시스템 연동**: 로그인/로그아웃 및 useAuth 훅 활용
+- [x] **다국어 시스템**: toggleLanguage 함수 및 모든 UI 텍스트 번역
+- [x] **에러 처리**: 우상단 토스트 메시지 및 로딩 상태 관리
+
+#### 🔧 세션 4 예정
+- [ ] 백엔드 서버 연동 (server 폴더 의존성 문제 해결)
+- [ ] 실제 이미지 생성 API 테스트
+- [ ] Supabase 인증 및 토큰 시스템 검증
+- [ ] 실제 사용자 워크플로우 테스트
+
+**참조 문서**: `0919.md` (상세 작업 계획)
+
+#### 🎉 세션 3 주요 성과
+
+**완전히 작동하는 NewLayoutApp.tsx 완성!**
+- **URL**: http://localhost:5181
+- **상태**: 모든 UI 컴포넌트 정상 작동
+- **남은 작업**: 백엔드 서버 연동만
+
+**주요 특징**:
+- ✨ 깨끗한 2패널 레이아웃 (Input ↔ Output)
+- 💰 실시간 토큰 잔액 및 비용 표시
+- 🌎 완전한 한/영 다국어 지원
+- 🔑 로그인/로그아웃 시스템 연동
+- 📜 히스토리 패널 완전 구현
+- ⚡ ESC 키 취소, 클립보드 지원 등 UX 개선
+- 🎨 NeoDunggeunmo 폰트와 픽셀 테마 완전 통합
 
 ---
 

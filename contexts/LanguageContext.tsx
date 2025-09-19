@@ -5,6 +5,7 @@ import { translations, Language, Translation } from '../translations';
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
+  toggleLanguage: () => void;
   t: Translation;
 }
 
@@ -14,8 +15,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguage] = useState<Language>('ko');
   const t = useMemo(() => translations[language], [language]);
 
+  const toggleLanguage = () => {
+    setLanguage(current => current === 'ko' ? 'en' : 'ko');
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

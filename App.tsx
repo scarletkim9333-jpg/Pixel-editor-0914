@@ -1,12 +1,9 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Controls } from './components/Controls';
-import { OutputViewer } from './components/OutputViewer';
-import { ImageUploader } from './components/ImageUploader';
-import { DrawingCanvas } from './components/DrawingCanvas';
-import { Sidebar, type SidebarMode } from './components/Sidebar';
-import { CreateMode } from './components/CreateMode';
-import { EditMode } from './components/EditMode';
+import { Header } from './components/Layout/Header';
+import { InputPanel } from './components/Panels/InputPanel';
+import { OutputPanel } from './components/Panels/OutputPanel';
+import './styles/pixel-theme.css';
 import { LogoIcon, QuestionMarkCircleIcon, PixelTokenIcon } from './components/Icons';
 import { HelpModal } from './components/HelpModal';
 import { HistoryPanel } from './components/HistoryPanel';
@@ -23,25 +20,11 @@ import TokenBalance from './src/components/TokenBalance';
 import { useTokens } from './src/lib/tokenApi';
 
 
-const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`py-2 px-4 text-lg font-semibold transition-colors focus:outline-none font-neodgm ${
-      isActive
-        ? 'border-b-4 border-black text-black'
-        : 'text-gray-500 hover:text-black'
-    }`}
-    aria-current={isActive ? 'page' : undefined}
-  >
-    {label}
-  </button>
-);
 
 
 const AppContent: React.FC = () => {
-  const { user, signInWithGoogle, signOut } = useAuth();
-  const { language, setLanguage, t } = useTranslations();
-  const { balance, loading: tokenLoading, refreshBalance, useTokens: useTokensFunction } = useTokens();
+  // 최소한의 상태만 사용
+  const [currentMode, setCurrentMode] = useState<'create' | 'edit'>('create');
 
   useEffect(() => {
     if (user) {
@@ -71,9 +54,6 @@ const AppContent: React.FC = () => {
   const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
   const [requiredTokens, setRequiredTokens] = useState(0);
   const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
-  const [animateToken, setAnimateToken] = useState(false);
-  const balanceRef = useRef<HTMLDivElement>(null);
-  const generateBtnRef = useRef<HTMLButtonElement>(null);
 
   // State for Controls (lifted up)
   const [prompt, setPrompt] = useState('');
@@ -89,13 +69,11 @@ const AppContent: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [activeTab, setActiveTab] = useState<'results' | 'history'>('results');
 
-  // State for Sidebar
-  const [sidebarMode, setSidebarMode] = useState<SidebarMode>('edit');
+  // State for Mode (replaced sidebar)
+  const [currentMode, setCurrentMode] = useState<'create' | 'edit'>('create');
   
   const isCancelledRef = useRef(false);
 
-  const mainImage = images[0] || null;
-  const referenceImages = images.slice(1);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -193,143 +171,6 @@ const AppContent: React.FC = () => {
     }
   };
   
-  const handleGenerate = useCallback(async () => {
-    const request: GenerateImageRequest = {
-        prompt,
-        creativity,
-        selectedPresets,
-        numberOfOutputs,
-        selectedPresetOptionIds,
-        model,
-        aspectRatio,
-        resolution,
-    };
-
-    if (!user) {
-      setError(t.errorLogin);
-      return;
-    }
-    if (!mainImage) {
-      setError(t.errorMainImage);
-      return;
-    }
-
-    // 모델별 토큰 잔액 확인 (Aspect Ratio 추가 비용 포함)
-    const tokensRequired = getTotalTokenCost(model, aspectRatio, numberOfOutputs);
-
-    console.log(`토큰 소모 계산 - 모델: ${model}, 비율: ${aspectRatio}, 출력수: ${numberOfOutputs}, 총 필요: ${tokensRequired}토큰`);
-
-    // 토큰 부족시 명확한 안내
-    if (balance === null || balance < tokensRequired) {
-      setError(`픽셀 토큰이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
-      setRequiredTokens(tokensRequired);
-      setIsTokenPurchaseModalOpen(true);
-      return;
-    }
-
-    // 애니메이션 시작
-    if (balanceRef.current && generateBtnRef.current) {
-      setAnimateToken(true);
-      setTimeout(() => setAnimateToken(false), 1000);
-    }
-
-    isCancelledRef.current = false;
-    setIsLoading(true);
-    setError(null);
-    setGeneratedImages([]);
-    setLastTokenUsage(null);
-    setActiveTab('results');
-
-    const preset = request.selectedPresets[0];
-    if (preset?.id === 'figurine') {
-        setSkeletonCount(request.selectedPresetOptionIds.length > 0 ? request.selectedPresetOptionIds.length : 1);
-    } else {
-        setSkeletonCount(request.numberOfOutputs);
-    }
-
-
-    try {
-      // 먼저 이미지 생성 시도
-      const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
-
-      if (isCancelledRef.current) {
-        console.log("Generation was cancelled. Ignoring results.");
-        return;
-      }
-
-      setGeneratedImages(result.images);
-      setLastTokenUsage(result.usage);
-
-      // 생성 성공 후에만 토큰 차감
-      console.log(`실제 토큰 차감 - ${tokensRequired}토큰 소모`);
-      await useTokensFunction(tokensRequired, `이미지 생성: ${prompt.substring(0, 50)}...`);
-
-      // 생성 정보 저장
-      setLastGenerationInfo({
-        model: model,
-        iterations: numberOfOutputs,
-        cost: tokensRequired
-      });
-
-      if(result.text) {
-        console.log("Model Text Output:", result.text);
-      }
-      if (result.usage) {
-        setSessionTokenUsage(prevUsage => ({
-          promptTokenCount: prevUsage.promptTokenCount + (result.usage?.promptTokenCount || 0),
-          candidatesTokenCount: prevUsage.candidatesTokenCount + (result.usage?.candidatesTokenCount || 0),
-          totalTokenCount: prevUsage.totalTokenCount + (result.usage?.totalTokenCount || 0),
-        }));
-      }
-
-      // Save to history
-      const mainImageB64 = await fileToDataURL(mainImage);
-      const referenceImagesB64 = await Promise.all(referenceImages.map(f => fileToDataURL(f)));
-
-      await historyService.addGeneration({
-        timestamp: Date.now(),
-        request,
-        images: result.images,
-        mainImage: mainImageB64,
-        referenceImages: referenceImagesB64
-      });
-      await loadHistory();
-
-    } catch (err) {
-      if (!isCancelledRef.current) {
-        console.error(err);
-
-        // API 오류시 사용자 친화적 메시지
-        let errorMessage = t.errorUnknown;
-
-        if (err && typeof err === 'object' && 'response' in err) {
-          const response = (err as any).response;
-          if (response?.status === 402) {
-            errorMessage = '픽셀 토큰이 부족합니다. 충전 후 다시 시도해주세요.';
-            setRequiredTokens(getTotalTokenCost(model, aspectRatio, numberOfOutputs));
-            setIsTokenPurchaseModalOpen(true);
-          } else if (response?.status === 401) {
-            errorMessage = '로그인이 만료되었습니다. 다시 로그인해주세요.';
-          } else if (response?.status >= 500) {
-            errorMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
-          } else {
-            errorMessage = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-          }
-        } else if (err instanceof Error) {
-          // 네트워크 오류 등 처리
-          if (err.message.includes('network') || err.message.includes('Network')) {
-            errorMessage = '네트워크 연결을 확인해주세요.';
-          } else {
-            errorMessage = err.message;
-          }
-        }
-
-        setError(errorMessage);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, images, prompt, creativity, numberOfOutputs, model, t, balance]);
 
   const handleSuggestion = useCallback(async (currentPrompt: string): Promise<string> => {
     if (!user) {
@@ -339,6 +180,8 @@ const AppContent: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+        const mainImage = images[0] || null;
+        const referenceImages = images.slice(1);
         const suggestion = await getPromptSuggestion(currentPrompt, mainImage, referenceImages, language);
         return suggestion;
     } catch (err) {
@@ -349,7 +192,7 @@ const AppContent: React.FC = () => {
     } finally {
         setIsLoading(false);
     }
-  }, [mainImage, referenceImages, user, t, language]);
+  }, [images, user, t, language]);
   
   const handleSaveDrawing = (file: File) => {
       setImages(prev => [...prev, file]);
@@ -380,7 +223,7 @@ const AppContent: React.FC = () => {
       setImages([file]);
 
       // Edit 모드로 전환
-      setSidebarMode('edit');
+      setCurrentMode('edit');
 
       // 탭을 results로 설정
       setActiveTab('results');
@@ -453,254 +296,183 @@ const AppContent: React.FC = () => {
   }, []);
 
 
-  const disabledReason = !user ? t.disabledReasonLogin : images.length === 0 ? t.disabledReasonImage : null;
+  const disabledReason = !user ? t.disabledReasonLogin : (currentMode === 'edit' && images.length === 0) ? t.disabledReasonImage : null;
+
+  // 토큰 비용 계산
+  useEffect(() => {
+    const cost = getTotalTokenCost(model, aspectRatio, numberOfOutputs);
+    setRequiredTokens(cost);
+  }, [model, aspectRatio, numberOfOutputs]);
+
+  const handleGenerateNew = useCallback(async (request: GenerateImageRequest) => {
+    const mainImage = request.mainImage || images[0] || null;
+    const referenceImages = request.referenceImages || images.slice(1);
+
+    if (!user) {
+      setError(t.errorLogin);
+      return;
+    }
+    if (currentMode === 'edit' && !mainImage) {
+      setError(t.errorMainImage);
+      return;
+    }
+
+    // 모델별 토큰 잔액 확인 (Aspect Ratio 추가 비용 포함)
+    const tokensRequired = getTotalTokenCost(request.model, request.aspectRatio, request.numberOfOutputs);
+
+    console.log(`토큰 소모 계산 - 모델: ${request.model}, 비율: ${request.aspectRatio}, 출력수: ${request.numberOfOutputs}, 총 필요: ${tokensRequired}토큰`);
+
+    // 토큰 부족시 명확한 안내
+    if (balance === null || balance < tokensRequired) {
+      setError(`픽셀 토큰이 부족합니다. (필요: ${tokensRequired}, 보유: ${balance || 0})`);
+      setRequiredTokens(tokensRequired);
+      setIsTokenPurchaseModalOpen(true);
+      return;
+    }
+
+    isCancelledRef.current = false;
+    setIsLoading(true);
+    setError(null);
+    setGeneratedImages([]);
+    setLastTokenUsage(null);
+    setActiveTab('results');
+
+    const preset = request.selectedPresets[0];
+    if (preset?.id === 'figurine') {
+        setSkeletonCount(request.selectedPresetOptionIds.length > 0 ? request.selectedPresetOptionIds.length : 1);
+    } else {
+        setSkeletonCount(request.numberOfOutputs);
+    }
+
+    try {
+      // 먼저 이미지 생성 시도
+      const result = await editImageWithGemini({ ...request, mainImage, referenceImages });
+
+      if (isCancelledRef.current) {
+        console.log("Generation was cancelled. Ignoring results.");
+        return;
+      }
+
+      setGeneratedImages(result.images);
+      setLastTokenUsage(result.usage);
+
+      // 생성 성공 후에만 토큰 차감
+      console.log(`실제 토큰 차감 - ${tokensRequired}토큰 소모`);
+      await useTokensFunction(tokensRequired, `이미지 생성: ${request.prompt.substring(0, 50)}...`);
+
+      // 생성 정보 저장
+      setLastGenerationInfo({
+        model: request.model,
+        iterations: request.numberOfOutputs,
+        cost: tokensRequired
+      });
+
+      if(result.text) {
+        console.log("Model Text Output:", result.text);
+      }
+      if (result.usage) {
+        setSessionTokenUsage(prevUsage => ({
+          promptTokenCount: prevUsage.promptTokenCount + (result.usage?.promptTokenCount || 0),
+          candidatesTokenCount: prevUsage.candidatesTokenCount + (result.usage?.candidatesTokenCount || 0),
+          totalTokenCount: prevUsage.totalTokenCount + (result.usage?.totalTokenCount || 0),
+        }));
+      }
+
+      // Save to history
+      if (mainImage) {
+        const mainImageB64 = await fileToDataURL(mainImage);
+        const referenceImagesB64 = await Promise.all(referenceImages.map(f => fileToDataURL(f)));
+
+        await historyService.addGeneration({
+          timestamp: Date.now(),
+          request,
+          images: result.images,
+          mainImage: mainImageB64,
+          referenceImages: referenceImagesB64
+        });
+        await loadHistory();
+      }
+
+    } catch (err) {
+      if (!isCancelledRef.current) {
+        console.error(err);
+
+        // API 오류시 사용자 친화적 메시지
+        let errorMessage = t.errorUnknown;
+
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as any).response;
+          if (response?.status === 402) {
+            errorMessage = '픽셀 토큰이 부족합니다. 충전 후 다시 시도해주세요.';
+            setRequiredTokens(getTotalTokenCost(request.model, request.aspectRatio, request.numberOfOutputs));
+            setIsTokenPurchaseModalOpen(true);
+          } else if (response?.status === 401) {
+            errorMessage = '로그인이 만료되었습니다. 다시 로그인해주세요.';
+          } else if (response?.status >= 500) {
+            errorMessage = '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          } else {
+            errorMessage = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          }
+        } else if (err instanceof Error) {
+          // 네트워크 오류 등 처리
+          if (err.message.includes('network') || err.message.includes('Network')) {
+            errorMessage = '네트워크 연결을 확인해주세요.';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
+        setError(errorMessage);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [images, balance, user, t, useTokensFunction, currentMode, loadHistory]);
 
   return (
-    <div className="min-h-screen bg-[#FDF6E3] text-[#212121] flex">
-      {/* 사이드바 */}
-      <Sidebar
-        activeMode={sidebarMode}
-        onModeChange={setSidebarMode}
-      />
-
-      {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-[#FDF6E3] border-b-2 border-black sticky top-0 z-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-3">
-                <LogoIcon />
-                <h1 className="font-press-start text-lg md:text-xl text-black flex items-center gap-1">
-                  <span>PIXEL-EDITOR</span>
-                  <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
-                </h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                {user && <div ref={balanceRef}><TokenBalance /></div>}
-
-                <div className="flex items-center space-x-1">
-                  <button
-                      onClick={() => setLanguage(language === 'ko' ? 'en' : 'ko')}
-                      className="flex items-center justify-center h-10 w-10 rounded-full bg-transparent hover:bg-gray-200 transition-colors font-neodgm text-sm font-bold text-black"
-                      aria-label={t.languageToggle}
-                    >
-                      {language === 'ko' ? 'EN' : 'KO'}
-                    </button>
-                   <button
-                    onClick={() => setIsHelpModalOpen(true)}
-                    className="flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                    aria-label={t.help}
-                  >
-                    <QuestionMarkCircleIcon className="w-6 h-6" />
-                  </button>
-                  {user ? (
-                  <button
-                    onClick={handleLogout}
-                    className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                    aria-label={t.logout}
-                  >
-                    <span className="text-xl" role="img" aria-hidden="true">🔑</span>
-                    <span className="absolute top-1 right-1 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-[#FDF6E3] flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </span>
-                  </button>
-                ) : (
-                    <button
-                      onClick={handleLogin}
-                      className="relative flex items-center justify-center h-10 w-10 text-black hover:bg-gray-200 transition-colors"
-                      aria-label={t.login}
-                    >
-                      <span className="text-xl" role="img" aria-hidden="true">🔑</span>
-                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#FDF6E3]" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-        {/* 모바일용 모드 탭 */}
-        <div className="lg:hidden flex border-b-2 border-black bg-gray-100">
-          <button
-            onClick={() => setSidebarMode('create')}
-            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
-              sidebarMode === 'create' ? 'bg-[#E57A77] text-white' : 'bg-white'
-            }`}
-          >
-            ✨ Create
-          </button>
-          <button
-            onClick={() => setSidebarMode('edit')}
-            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
-              sidebarMode === 'edit' ? 'bg-[#E57A77] text-white' : 'bg-white'
-            }`}
-          >
-            ✏️ Edit
-          </button>
-          <button
-            onClick={() => setSidebarMode('chat')}
-            className={`flex-1 p-3 text-sm font-bold font-neodgm ${
-              sidebarMode === 'chat' ? 'bg-[#E57A77] text-white' : 'bg-white'
-            }`}
-          >
-            💬 Chat
-          </button>
-        </div>
-
-        <main className="flex-grow flex flex-col lg:flex-row overflow-hidden">
-          {/* 좌측 입력 영역 */}
-          <div className="w-full lg:w-1/3 p-4 lg:border-r-2 border-black overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
-            {/* 타이틀 카드 */}
-            <div className="border-2 border-black bg-[#E57A77] text-white p-3 mb-4">
-              <h2 className="text-lg font-bold font-neodgm">
-                {sidebarMode === 'create' ? t.createImageTitle : sidebarMode === 'edit' ? t.editImageTitle : t.chatEditTitle}
-              </h2>
-            </div>
-
-            {/* 모드별 입력 컴포넌트 */}
-            <div className="mb-4">
-              {sidebarMode === 'create' && (
-                <CreateMode
-                  onImageCreated={(file) => setImages([file])}
-                  isDrawingCanvasOpen={isDrawingCanvasOpen}
-                  setIsDrawingCanvasOpen={setIsDrawingCanvasOpen}
-                />
-              )}
-              {sidebarMode === 'edit' && (
-                <EditMode
-                  images={images}
-                  onImagesChange={setImages}
-                  onOpenDrawing={() => setIsDrawingCanvasOpen(true)}
-                />
-              )}
-              {sidebarMode === 'chat' && (
-                <div className="text-center p-8">
-                  <div className="text-6xl mb-4">🚧</div>
-                  <h3 className="text-xl font-bold mb-2 font-neodgm">준비 중</h3>
-                  <p className="text-gray-600">이 기능은 곧 출시됩니다!</p>
-                </div>
-              )}
-            </div>
-
-            {/* 컨트롤 패널 - Create/Edit 모드에서 표시 */}
-            {images.length > 0 && (sidebarMode === 'edit' || sidebarMode === 'create') && (
-              <div className="border-2 border-black bg-[#FFFBF2] p-3">
-                <h3 className="text-base font-bold mb-3 font-neodgm">📝 편집 설정</h3>
-                <Controls
-                  onGenerate={handleGenerate}
-                  onSuggest={handleSuggestion}
-                  isLoading={isLoading}
-                  disabledReason={disabledReason}
-                  prompt={prompt}
-                  setPrompt={setPrompt}
-                  creativity={creativity}
-                  setCreativity={setCreativity}
-                  selectedPresets={selectedPresets}
-                  setSelectedPresets={setSelectedPresets}
-                  numberOfOutputs={numberOfOutputs}
-                  setNumberOfOutputs={setNumberOfOutputs}
-                  selectedPresetOptionIds={selectedPresetOptionIds}
-                  setSelectedPresetOptionIds={setSelectedPresetOptionIds}
-                  model={model}
-                  setModel={setModel}
-                  aspectRatio={aspectRatio}
-                  setAspectRatio={setAspectRatio}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  generateBtnRef={generateBtnRef}
-                  mode={sidebarMode}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* 우측 결과 영역 */}
-          <div className="flex-1 p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
-            <div className="border-2 border-black bg-[#FFFBF2] flex flex-col" style={{ height: 'calc(100vh - 96px)' }}>
-              <div className="flex border-b-2 border-black">
-                <TabButton
-                  label={t.resultsTab}
-                  isActive={activeTab === 'results'}
-                  onClick={() => setActiveTab('results')}
-                />
-                <TabButton
-                  label={`${t.historyTab} (${history.length})`}
-                  isActive={activeTab === 'history'}
-                  onClick={() => setActiveTab('history')}
-                />
-              </div>
-              <div className="flex-grow overflow-y-auto p-4">
-                {activeTab === 'results' ? (
-                  <OutputViewer
-                    isLoading={isLoading}
-                    images={generatedImages}
-                    error={error}
-                    tokenUsage={lastTokenUsage}
-                    sessionTokenUsage={sessionTokenUsage}
-                    onResetSessionUsage={handleResetSessionUsage}
-                    onUpscale={handleUpscale}
-                    onEditImage={handleEditImage}
-                    skeletonCount={skeletonCount}
-                    lastGenerationInfo={lastGenerationInfo}
-                    lastUpscaleInfo={lastUpscaleInfo}
-                  />
-                ) : (
-                  <HistoryPanel
-                    history={history}
-                    onLoad={handleLoadHistory}
-                    onDelete={handleDeleteHistory}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </main>
+    <div className="min-h-screen bg-gray-100">
+      {/* 테스트 헤더 */}
+      <div className="bg-white border-b-2 border-black p-4">
+        <h1 className="text-2xl font-bold">PIXEL EDITOR - 테스트</h1>
+        <p>현재 모드: {currentMode}</p>
       </div>
 
-      <DrawingCanvas 
-        isOpen={isDrawingCanvasOpen}
-        onClose={() => setIsDrawingCanvasOpen(false)}
-        onSave={handleSaveDrawing}
-      />
-      <HelpModal
-        isOpen={isHelpModalOpen}
-        onClose={() => setIsHelpModalOpen(false)}
-      />
-      <TokenPurchaseModal
-        isOpen={isTokenPurchaseModalOpen}
-        onClose={() => setIsTokenPurchaseModalOpen(false)}
-        requiredTokens={requiredTokens}
-        onPurchaseSuccess={() => {
-          // 구매 성공 시 잔액 새로고침 및 에러 초기화
-          refreshBalance();
-          setIsTokenPurchaseModalOpen(false);
-          setError(null);
-          setRequiredTokens(0);
-        }}
-      />
-      {paymentCallbackType && (
-        <PaymentCallback
-          type={paymentCallbackType}
-          onClose={() => {
-            setPaymentCallbackType(null);
-            // URL을 깨끗하게 정리
-            window.history.replaceState({}, document.title, '/');
-            // 잔액 새로고침
-            if (paymentCallbackType === 'success') {
-              refreshBalance();
-            }
-          }}
-        />
-      )}
+      {/* 테스트 컨텐츠 */}
+      <div className="p-8">
+        <div className="bg-white border-2 border-black p-6 max-w-md">
+          <h2 className="text-xl font-bold mb-4">UI 테스트</h2>
+          <p className="mb-4">이 텍스트가 보이면 React가 정상 작동하고 있습니다.</p>
 
-      {/* 토큰 애니메이션 컴포넌트 */}
-      {animateToken && <FlyingToken startRef={balanceRef} endRef={generateBtnRef} />}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setCurrentMode('create')}
+              className={`px-4 py-2 border-2 border-black ${
+                currentMode === 'create' ? 'bg-blue-200' : 'bg-white'
+              }`}
+            >
+              Create
+            </button>
+            <button
+              onClick={() => setCurrentMode('edit')}
+              className={`px-4 py-2 border-2 border-black ${
+                currentMode === 'edit' ? 'bg-blue-200' : 'bg-white'
+              }`}
+            >
+              Edit
+            </button>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            <p>사용자: {user ? '로그인됨' : '로그인 안됨'}</p>
+            <p>토큰 잔액: {balance}</p>
+            <p>로딩 상태: {isLoading ? '로딩 중' : '대기'}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
 
 // 토큰 애니메이션을 위한 별도 컴포넌트
 const FlyingToken: React.FC<{ startRef: React.RefObject<HTMLElement>, endRef: React.RefObject<HTMLElement> }> = ({ startRef, endRef }) => {
@@ -812,7 +584,7 @@ const SimpleAppContent: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <h1 className="font-press-start text-lg md:text-xl text-black flex items-center gap-1">
+              <h1 className="font-neodgm text-lg md:text-xl text-black flex items-center gap-1">
                 <span>PIXEL-EDITOR</span>
                 <span className="ml-2 text-xs bg-black text-[#90EE90] px-2 py-0.5">{t.dev}</span>
               </h1>
