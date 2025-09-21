@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { UploadIcon, TrashIcon } from './Icons';
+import { ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from '../contexts/LanguageContext';
 
 interface ImageUploaderProps {
@@ -106,7 +106,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-none cursor-pointer transition-colors duration-200
           ${isDragging ? 'border-black bg-gray-200' : 'border-black hover:bg-gray-100'}`}
       >
-        <UploadIcon className="w-8 h-8 text-gray-500 mb-2" />
+        <ArrowUpTrayIcon className="w-8 h-8 text-gray-500 mb-2" />
         <p className="text-base text-gray-700 text-center">{label}</p>
         <p className="text-sm text-gray-500">{t.uploaderFileTypes}</p>
         <input

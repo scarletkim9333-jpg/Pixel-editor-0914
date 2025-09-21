@@ -2,7 +2,7 @@ import React, { useState, useRef, useLayoutEffect } from 'react';
 import type { GenerateImageRequest, Preset, ModelId, AspectRatio, Resolution } from '../types';
 import type { SidebarMode } from './Sidebar';
 import { getPresets } from '../translations';
-import { SparklesIcon, ChevronDownIcon } from './Icons';
+import { SparklesIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from '../contexts/LanguageContext';
 import { getModelTokenCost, getTotalTokenCost, getAspectRatioTokenCost } from '../services/geminiService';
 import { OutputSizeDropdown } from './OutputSizeDropdown';

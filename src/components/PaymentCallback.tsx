@@ -6,7 +6,7 @@ interface PaymentCallbackProps {
   onClose: () => void;
 }
 
-export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ type, onClose }) => {
+const PaymentCallback: React.FC<PaymentCallbackProps> = ({ type, onClose }) => {
   const { confirmPayment } = useTokens();
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState('');
@@ -98,3 +98,5 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ type, onClose 
     </div>
   );
 };
+
+export default PaymentCallback;

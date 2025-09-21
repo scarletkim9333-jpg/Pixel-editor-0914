@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { XMarkIcon, Cog6ToothIcon, SparklesIcon, CurrencyDollarIcon, GlobeAltIcon, LockClosedIcon, CheckCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { LanguageProvider, useTranslations } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './styles/pixel-theme.css';
@@ -12,8 +13,21 @@ import type { Translation } from './translations';
 import { getPresets } from './translations';
 import { HelpModal } from './components/HelpModal';
 import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
-import { PaymentCallback } from './src/components/PaymentCallback';
+import PaymentCallback from './src/components/PaymentCallback';
 import { ImageUploader } from './components/ImageUploader';
+import { DrawingCanvas } from './components/DrawingCanvas';
+
+// 상태 표시용 작은 점 컴포넌트 (픽셀 스타일)
+const StatusDot: React.FC<{ color: string; className?: string }> = ({ color, className = '' }) => (
+  <div
+    className={`absolute -top-1 -right-1 w-3 h-3 border-2 border-white ${className}`}
+    style={{
+      backgroundColor: color,
+      borderRadius: '0', // 픽셀 스타일에 맞게 각진 모양
+      boxShadow: '1px 1px 0 0 rgba(0, 0, 0, 0.3)' // 픽셀 그림자 효과
+    }}
+  />
+);
 
 const NewLayoutAppContent: React.FC = () => {
   const { t, language, toggleLanguage } = useTranslations();
@@ -62,6 +76,8 @@ const NewLayoutAppContent: React.FC = () => {
   const [isTokenPurchaseModalOpen, setIsTokenPurchaseModalOpen] = useState(false);
   const [requiredTokens, setRequiredTokens] = useState(0);
   const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
+  const [selectedImageForModal, setSelectedImageForModal] = useState<string | null>(null);
+  const [isDrawingCanvasOpen, setIsDrawingCanvasOpen] = useState(false);
 
   // 제어 관련 상태
   const [creativity, setCreativity] = useState(0.5);
@@ -78,12 +94,12 @@ const NewLayoutAppContent: React.FC = () => {
 
   const isCancelledRef = useRef(false);
 
-  // 토큰 잔액 새로고침
+  // 토큰 잔액 새로고침 (refreshBalance 의존성 제거하여 무한 루프 방지)
   useEffect(() => {
     if (user) {
       refreshBalance();
     }
-  }, [user, refreshBalance]);
+  }, [user]);
 
   // 히스토리 로드
   const loadHistory = useCallback(async () => {
@@ -98,7 +114,7 @@ const NewLayoutAppContent: React.FC = () => {
 
   useEffect(() => {
     loadHistory();
-  }, [loadHistory]);
+  }, []); // 한 번만 실행
 
   // 결제 콜백 URL 처리
   useEffect(() => {
@@ -266,12 +282,14 @@ const NewLayoutAppContent: React.FC = () => {
         return;
       }
 
+      console.log(`이미지 생성 결과 - 총 ${result.images.length}개 이미지 받음:`, result.images);
       setGeneratedImages(result.images);
       setLastTokenUsage(result.usage);
 
       // 생성 성공 후에만 토큰 차감
       console.log(`실제 토큰 차감 - ${tokensRequired}토큰 소모`);
-      await useTokensFunction(tokensRequired, `이미지 생성: ${request.prompt.substring(0, 50)}...`);
+      const tokenResult = await useTokensFunction(tokensRequired, `이미지 생성: ${request.prompt.substring(0, 50)}...`);
+      console.log('토큰 사용 결과:', tokenResult);
 
       // 생성 정보 저장
       setLastGenerationInfo({
@@ -345,8 +363,13 @@ const NewLayoutAppContent: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // 이미지 편집 준비
-  const handleEditImage = useCallback(async (imageUrl: string) => {
+  // 이미지 편집 팝업 열기
+  const handleEditImage = useCallback((imageUrl: string) => {
+    setSelectedImageForModal(imageUrl);
+  }, []);
+
+  // 실제 이미지를 Input으로 설정하는 함수
+  const handleSetImageAsInput = useCallback(async (imageUrl: string) => {
     try {
       // URL에서 이미지 다운로드
       const response = await fetch(imageUrl);
@@ -361,6 +384,9 @@ const NewLayoutAppContent: React.FC = () => {
 
       // 탭을 results로 설정
       setActiveTab('results');
+
+      // 모달 닫기
+      setSelectedImageForModal(null);
     } catch (err) {
       console.error('Failed to load image for editing:', err);
       setError('이미지를 불러올 수 없습니다');
@@ -368,6 +394,16 @@ const NewLayoutAppContent: React.FC = () => {
   }, []);
 
   // 업스케일 핸들러
+  // 그리기 기능
+  const handleDrawClick = () => {
+    setIsDrawingCanvasOpen(true);
+  };
+
+  const handleDrawingSave = (file: File) => {
+    setImages(prev => [file, ...prev]);
+    setIsDrawingCanvasOpen(false);
+  };
+
   const handleUpscale = useCallback(async (imageUrl: string, imageIndex: number) => {
     if (!user) {
       setError(t.errorLogin);
@@ -438,9 +474,13 @@ const NewLayoutAppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-neodgm">
+    <div className="min-h-screen pixel-bg font-neodgm">
       {/* 헤더 */}
-      <header className="bg-white border-b-4 border-black shadow-lg">
+      <header className="sticky top-0 z-40 border-b-3 shadow-lg" style={{
+        background: 'linear-gradient(to right in oklab, rgb(241, 240, 232), rgb(229, 225, 218))',
+        borderBottomColor: 'rgb(137, 168, 178)',
+        borderBottomWidth: '3px'
+      }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* 로고 영역 */}
@@ -486,31 +526,33 @@ const NewLayoutAppContent: React.FC = () => {
 
             {/* 우측 유틸리티 영역 */}
             <div className="flex items-center space-x-4">
+
               {/* 토큰 잔액 */}
               <TokenBalance />
 
               {/* 언어 전환 */}
               <button
                 onClick={toggleLanguage}
-                className="px-3 py-1 text-sm border-2 border-black rounded bg-blue-100 hover:bg-blue-200 transition-colors"
+                className="relative w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-gray-100 transition-all"
+                title={language === 'ko' ? 'Switch to English' : '한국어로 변경'}
               >
-                {language === 'ko' ? 'EN' : '한'}
+                <GlobeAltIcon
+                  className="w-8 h-8 text-black"
+                />
+                <StatusDot color={language === 'ko' ? '#2563eb' : '#dc2626'} />
               </button>
 
-              {/* 로그인/로그아웃 버튼 */}
+              {/* 로그인/로그아웃 상태 버튼 */}
               <button
                 onClick={user ? handleLogout : handleLogin}
-                className={`p-2 border-2 border-black rounded transition-colors flex items-center space-x-2 ${
-                  user
-                    ? 'bg-green-100 hover:bg-green-200 text-green-700'
-                    : 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
-                }`}
-                title={user ? t.logout : t.login}
+                className="relative w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-gray-100 transition-all"
+                title={user ? `${user.email} - 로그아웃하려면 클릭` : '로그인이 필요합니다'}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                </svg>
-                <span className="hidden lg:inline">{user ? t.logout : t.login}</span>
+                {user ? (
+                  <CheckCircleIcon className="w-8 h-8 text-green-600" />
+                ) : (
+                  <LockClosedIcon className="w-8 h-8 text-red-600" />
+                )}
               </button>
             </div>
           </div>
@@ -518,9 +560,9 @@ const NewLayoutAppContent: React.FC = () => {
       </header>
 
       {/* 메인 레이아웃 */}
-      <main className="flex flex-col md:flex-row min-h-screen pt-16">
+      <main className="flex flex-col md:flex-row min-h-screen pt-12">
         {/* 좌측 Input 패널 */}
-        <div className="w-full md:w-1/2 p-4 h-screen md:h-auto">
+        <div className="w-full md:w-1/2 p-2 md:p-3 h-screen md:h-auto">
           <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
@@ -538,12 +580,12 @@ const NewLayoutAppContent: React.FC = () => {
                 <label className="block text-sm font-bold mb-2">
                   {t.prompt}
                 </label>
-                <div className="speech-bubble">
+                <div className="pb-4">
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder={currentMode === 'create' ? t.promptPlaceholder : t.editPromptPlaceholder}
-                    className="pixel-input w-full h-24 resize-none border-0 bg-transparent"
+                    className="speech-bubble w-full h-24 resize-none"
                   />
                 </div>
               </div>
@@ -551,9 +593,19 @@ const NewLayoutAppContent: React.FC = () => {
               {/* 이미지 업로드 영역 (Edit 모드) */}
               {currentMode === 'edit' && (
                 <div className="mb-6">
-                  <label className="block text-sm font-bold mb-2">
-                    {t.uploadImage}
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold">
+                      {t.uploadImage}
+                    </label>
+                    <button
+                      onClick={handleDrawClick}
+                      className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                      title={t.draw || 'Draw'}
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                      <span>Draw</span>
+                    </button>
+                  </div>
                   <div className="pixel-border p-4 rounded-lg">
                     <ImageUploader
                       images={images}
@@ -736,13 +788,20 @@ const NewLayoutAppContent: React.FC = () => {
                 {/* 토큰 비용 요약 */}
                 <div className="pixel-border p-3 bg-yellow-50 rounded-lg">
                   <div className="text-sm">
-                    <div className="font-bold mb-2">🪙 토큰 비용 계산</div>
+                    <div className="font-bold mb-2 flex items-center space-x-2">
+                      <CurrencyDollarIcon className="w-4 h-4 text-yellow-600" />
+                      <span>토큰 비용 계산</span>
+                    </div>
                     <div className="space-y-1 text-xs">
                       <div>• 모델 기본 비용: {model === 'nanobanana' ? '2' : '4'}토큰</div>
                       {aspectRatio !== 'auto' && model === 'nanobanana' && (
                         <div>• 종횡비 추가 비용: +2토큰</div>
                       )}
-                      <div>• 출력 수량: ×{numberOfOutputs}</div>
+                      <div className="flex items-center space-x-1">
+                        <span>• 출력 수량:</span>
+                        <XMarkIcon className="w-3 h-3" />
+                        <span>{numberOfOutputs}</span>
+                      </div>
                       {selectedPresets.length > 0 && (
                         <div className="text-blue-600">
                           • 프리셋: {selectedPresets[0].name}
@@ -775,15 +834,12 @@ const NewLayoutAppContent: React.FC = () => {
                   <div className="flex items-center justify-center space-x-2">
                     {isLoading ? (
                       <>
-                        <span className="animate-spin">⚙️</span>
+                        <Cog6ToothIcon className="w-5 h-5 animate-spin" />
                         <span>{t.generating}</span>
                       </>
                     ) : (
                       <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21l-7-5 7-5v10z" />
-                        </svg>
+                        <SparklesIcon className="w-5 h-5" />
                         <span>
                           {currentMode === 'create' ? t.generateImage : t.editImage}
                           {' ('}{requiredTokens} {t.tokens}{')'}
@@ -798,7 +854,7 @@ const NewLayoutAppContent: React.FC = () => {
         </div>
 
         {/* 우측 Output 패널 */}
-        <div className="w-full md:w-1/2 p-4 h-screen md:h-auto">
+        <div className="w-full md:w-1/2 p-2 md:p-3 h-screen md:h-auto">
           <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
@@ -841,47 +897,36 @@ const NewLayoutAppContent: React.FC = () => {
                 <div className="flex-1 overflow-y-auto">
                   {activeTab === 'results' ? (
                     generatedImages.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {generatedImages.map((imageUrl, index) => (
-                          <div key={index} className="pixel-border p-4 rounded-lg bg-white">
-                            <img
-                              src={imageUrl}
-                              alt={`Generated ${index + 1}`}
-                              className="w-full rounded-lg shadow-md"
-                            />
-                            <div className="flex gap-2 mt-3">
-                              <button
-                                onClick={() => handleEditImage(imageUrl)}
-                                className="flex-1 pixel-button text-sm py-2"
-                              >
-                                {t.edit}
-                              </button>
-                              <button
-                                onClick={() => handleUpscale(imageUrl, index)}
-                                disabled={isUpscaling}
-                                className="flex-1 pixel-button text-sm py-2 disabled:opacity-50"
-                              >
-                                {isUpscaling && upscalingImageIndex === index ? (
-                                  <div className="flex items-center justify-center space-x-1">
-                                    <span className="animate-spin">⚙️</span>
-                                    <span>업스케일 중...</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-center space-x-1">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                                    </svg>
-                                    <span>업스케일 (1토큰)</span>
-                                  </div>
-                                )}
-                              </button>
-                              <a
-                                href={imageUrl}
-                                download={`pixel-editor-${Date.now()}.png`}
-                                className="flex-1 pixel-button text-sm py-2 text-center"
-                              >
-                                다운로드
-                              </a>
+                          <div key={index} className="pixel-border p-4 rounded-lg" style={{backgroundColor: 'var(--panel-bg)'}}>
+                            <div className="image-container">
+                              <img
+                                src={imageUrl}
+                                alt={`Generated ${index + 1}`}
+                                className="w-full rounded-lg shadow-md"
+                              />
+                              <div className="image-overlay">
+                                <button
+                                  onClick={() => handleEditImage(imageUrl)}
+                                  className="overlay-button"
+                                  title="이미지 편집"
+                                >
+                                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                <a
+                                  href={imageUrl}
+                                  download={`pixel-editor-${Date.now()}.png`}
+                                  className="overlay-button"
+                                  title="다운로드"
+                                >
+                                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </a>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -904,7 +949,7 @@ const NewLayoutAppContent: React.FC = () => {
                   ) : (
                     <div className="space-y-3">
                       {history.map((item) => (
-                        <div key={item.id} className="pixel-border p-3 rounded-lg bg-white cursor-pointer hover:bg-gray-50" onClick={() => handleLoadHistory(item)}>
+                        <div key={item.id} className="pixel-border p-3 rounded-lg cursor-pointer hover:opacity-90" style={{backgroundColor: 'var(--panel-bg)'}} onClick={() => handleLoadHistory(item)}>
                           <div className="flex gap-3">
                             <img src={item.images[0]} alt="History" className="w-16 h-16 rounded object-cover" />
                             <div className="flex-1">
@@ -960,6 +1005,90 @@ const NewLayoutAppContent: React.FC = () => {
           onClose={() => setPaymentCallbackType(null)}
         />
       )}
+
+      {/* 이미지 편집 팝업 모달 */}
+      {selectedImageForModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="border-3 border-black shadow-[4px_4px_0_0_#000] max-w-2xl w-full max-h-[90vh] overflow-hidden" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-dark)' }}>
+            <div className="p-6">
+              {/* 모달 헤더 */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">이미지 작업</h3>
+                <button
+                  onClick={() => setSelectedImageForModal(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 이미지 뷰어 */}
+              <div className="mb-6">
+                <img
+                  src={selectedImageForModal}
+                  alt="Selected"
+                  className="w-full max-h-[50vh] object-contain rounded-lg"
+                />
+              </div>
+
+              {/* 액션 버튼들 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleSetImageAsInput(selectedImageForModal)}
+                  className="flex-1 pixel-button py-3 text-sm font-bold"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    <span>이 이미지를 Input으로</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    const index = generatedImages.indexOf(selectedImageForModal);
+                    if (index !== -1) {
+                      handleUpscale(selectedImageForModal, index);
+                      setSelectedImageForModal(null);
+                    }
+                  }}
+                  disabled={isUpscaling}
+                  className="flex-1 pixel-button py-3 text-sm font-bold disabled:opacity-50"
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    <span>업스케일 (1토큰)</span>
+                  </div>
+                </button>
+                <a
+                  href={selectedImageForModal}
+                  download={`pixel-editor-${Date.now()}.png`}
+                  className="flex-1 pixel-button py-3 text-sm font-bold text-center"
+                  onClick={() => setSelectedImageForModal(null)}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>다운로드</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DrawingCanvas 모달 */}
+      <DrawingCanvas
+        isOpen={isDrawingCanvasOpen}
+        onClose={() => setIsDrawingCanvasOpen(false)}
+        onSave={handleDrawingSave}
+      />
     </div>
   );
 };

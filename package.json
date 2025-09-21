@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@google/genai": "^1.16.0",
+    "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.57.4",
     "@tosspayments/payment-sdk": "^1.9.1",
+    "@types/react-router-dom": "^5.3.3",
     "axios": "^1.12.2",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,11 +1,11 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './NewLayoutApp';
-import DebugApp from './DebugApp';
-import SimpleApp from './SimpleApp';
-import TestApp from './TestApp';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import AppPage from './pages/AppPage';
+import PaymentCallback from './src/components/PaymentCallback';
+import './src/styles/landing.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,7 +14,12 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <Router>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/app" element={<AppPage />} />
+      <Route path="/payment/success" element={<PaymentCallback />} />
+      <Route path="/payment/fail" element={<PaymentCallback />} />
+    </Routes>
+  </Router>
 );

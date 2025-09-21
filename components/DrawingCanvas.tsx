@@ -1,9 +1,9 @@
 
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import { dataURLtoFile } from '../utils';
 import { useTranslations } from '../contexts/LanguageContext';
-import { UndoIcon } from './Icons';
 
 interface DrawingCanvasProps {
   isOpen: boolean;
@@ -204,7 +204,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isOpen, onClose, o
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#FDF6E3] border-2 border-black shadow-[4px_4px_0_0_#000] p-6 flex flex-col gap-4 w-full max-w-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="border-2 border-black shadow-[4px_4px_0_0_#000] p-6 flex flex-col gap-4 w-full max-w-xl max-h-[90vh] overflow-y-auto" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-dark)' }} onClick={(e) => e.stopPropagation()}>
         <div className="relative w-full">
           <canvas
             ref={canvasRef}
@@ -230,7 +230,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isOpen, onClose, o
             className="absolute top-2 right-2 flex flex-col items-center p-1 bg-white/80 hover:bg-white border-2 border-black disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/80 transition-colors"
             aria-label={t.undoButton}
           >
-            <UndoIcon className="w-6 h-6 text-black" />
+            <ArrowUturnLeftIcon className="w-6 h-6 text-black" />
             <span className="text-xs font-mono select-none">{undoShortcut}</span>
           </button>
           {isHovering && (
@@ -279,7 +279,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isOpen, onClose, o
                  <PixelButton onClick={onClose} className="w-full bg-gray-400 hover:bg-gray-500 text-black font-bold py-2 px-4 transition">
                     {t.cancelButton}
                 </PixelButton>
-                <PixelButton onClick={handleSave} className="w-full bg-[#E57A77] hover:bg-[#d46a68] text-white font-bold py-2 px-4 transition">
+                <PixelButton onClick={handleSave} className="w-full text-white font-bold py-2 px-4 transition" style={{ background: 'var(--primary)', borderColor: 'var(--border-dark)' }}>
                     {t.canvasSave}
                 </PixelButton>
             </div>

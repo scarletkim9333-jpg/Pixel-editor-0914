@@ -1,34 +1,53 @@
 /* Pixel Editor Theme CSS */
-/* 8-bit 레트로 게임 스타일과 현대적 디자인의 결합 */
+/* 단순화된 핑크 중심 색상 팔레트 */
 
 :root {
-  /* 색상 팔레트 */
-  --bg-pattern: #E8F0F7;           /* 연한 블루/그레이 그리드 */
-  --panel-bg: #FFFFFF;             /* 메인 패널 배경 */
-  --accent-pink: #FFB6C1;          /* 파스텔 핑크 */
-  --accent-blue: #ADD8E6;          /* 파스텔 블루 */
-  --accent-green: #98FB98;         /* 파스텔 그린 */
-  --accent-yellow: #FFFFE0;        /* 파스텔 옐로우 */
-  --border-dark: #2C3E50;          /* 픽셀 보더 */
-  --text-primary: #212121;         /* 기본 텍스트 */
-  --text-secondary: #6B7280;       /* 보조 텍스트 */
+  /* 메인 컬러 - 2-3개로 제한 */
+  --primary: #FFB6C1;        /* 시그니처 파스텔 핑크 */
+  --primary-dark: #FF9FB2;   /* 호버/액티브용 */
+  --secondary: #2C3E50;      /* 다크 네이비 */
 
-  /* 그림자 */
-  --shadow-pixel: 4px 4px 0 var(--border-dark);
-  --shadow-pressed: 0 2px 0 var(--border-dark);
-  --shadow-inset: inset -1px -1px 0 #fff, inset 1px 1px 0 var(--border-dark);
+  /* 배경 계층 */
+  --bg-base: #FAFAFA;        /* 최상위 배경 */
+  --bg-surface: #FFFFFF;     /* 카드/패널 배경 */
+  --bg-pattern: #F5F5F5;     /* 패턴/그리드 배경 */
+
+  /* 보더 계층 */
+  --border-light: #E5E7EB;   /* 일반 구분선 */
+  --border-medium: #D1D5DB;  /* 카드 보더 */
+  --border-dark: #2C3E50;    /* 강조 보더 (버튼, 주요 패널) */
+
+  /* 텍스트 */
+  --text-primary: #1F2937;   /* 메인 텍스트 */
+  --text-secondary: #6B7280; /* 보조 텍스트 */
+  --text-muted: #9CA3AF;     /* 비활성 텍스트 */
+
+  /* 상태 색상 (최소화) */
+  --success: #10B981;        /* 성공 */
+  --error: #EF4444;          /* 에러 */
+
+  /* 그림자 단순화 */
+  --shadow-sm: 0 2px 0 var(--border-dark);
+  --shadow-md: 0 4px 0 var(--border-dark);
+  --shadow-hover: 0 6px 0 var(--border-dark);
 }
 
-/* 전체 배경 패턴 */
+/* 메인 배경 - 깔끔한 격자 패턴 */
 .pixel-bg {
-  background-color: var(--bg-pattern);
+  background-color: #fafafa;
+  background-image:
+    linear-gradient(rgba(255, 182, 193, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+  min-height: 100vh;
 }
 
 /* 픽셀 보더 스타일 */
 .pixel-border {
   border: 3px solid var(--border-dark);
-  box-shadow: var(--shadow-pixel);
-  background: var(--panel-bg);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-surface);
+  border-radius: 0;
 }
 
 .pixel-border-thin {
@@ -36,149 +55,138 @@
   box-shadow: 2px 2px 0 var(--border-dark);
 }
 
-/* 픽셀 버튼 스타일 */
+/* 픽셀 버튼 스타일 - 메인 핑크 */
 .pixel-button {
-  background: linear-gradient(180deg, var(--accent-pink) 0%, #FFA0C9 100%);
-  border: 2px solid var(--border-dark);
-  box-shadow: 0 4px 0 var(--border-dark), 0 6px 0 rgba(0,0,0,0.2);
+  background: var(--primary);
+  border: 3px solid var(--border-dark);
+  box-shadow: var(--shadow-md);
   font-family: 'NeoDunggeunmo', monospace;
   font-weight: bold;
-  color: var(--text-primary);
-  padding: 8px 16px;
+  color: white;
+  padding: 10px 18px;
   transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   text-align: center;
-  display: inline-block;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+}
+
+/* 세컨더리 버튼 스타일 - 고스트 버튼 */
+.pixel-button-secondary {
+  background: transparent;
+  border: 3px solid var(--border-dark);
+  box-shadow: var(--shadow-sm);
+  font-family: 'NeoDunggeunmo', monospace;
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 10px 18px;
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-align: center;
+  border-radius: 0;
+}
+
+/* 이미지 오버레이 스타일 */
+.image-container {
   position: relative;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 182, 193, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.image-container:hover .image-overlay {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.image-container:hover img {
+  filter: brightness(0.8);
+  transition: filter 0.3s ease;
+}
+
+.overlay-button {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3);
+}
+
+.overlay-button:hover {
+  background: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.4);
 }
 
 .pixel-button:hover {
-  background: linear-gradient(180deg, #FFA0C9 0%, #FF8FA3 100%);
-  transform: translateY(1px);
-  box-shadow: 0 3px 0 var(--border-dark), 0 5px 0 rgba(0,0,0,0.2);
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
 .pixel-button:active {
-  transform: translateY(4px);
-  box-shadow: none;
-  background: linear-gradient(180deg, #FF8FA3 0%, #FF7F93 100%);
+  transform: translateY(2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.pixel-button-secondary:hover {
+  background: var(--bg-pattern);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.pixel-button-secondary:active {
+  transform: translateY(2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .pixel-button:disabled {
-  background: #D1D5DB;
-  color: #9CA3AF;
+  background: var(--border-medium);
+  color: var(--text-muted);
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 4px 0 #9CA3AF, 0 6px 0 rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .pixel-button:disabled:hover {
   transform: none;
-  box-shadow: 0 4px 0 #9CA3AF, 0 6px 0 rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 버튼 색상 변형 */
-.pixel-button-blue {
-  background: linear-gradient(180deg, var(--accent-blue) 0%, #87CEEB 100%);
-}
-
-.pixel-button-blue:hover {
-  background: linear-gradient(180deg, #87CEEB 0%, #6BB6FF 100%);
-}
-
-.pixel-button-green {
-  background: linear-gradient(180deg, var(--accent-green) 0%, #90EE90 100%);
-}
-
-.pixel-button-green:hover {
-  background: linear-gradient(180deg, #90EE90 0%, #7FDD7F 100%);
-}
-
-.pixel-button-yellow {
-  background: linear-gradient(180deg, var(--accent-yellow) 0%, #FFFACD 100%);
-}
-
-.pixel-button-yellow:hover {
-  background: linear-gradient(180deg, #FFFACD 0%, #FFF8B4 100%);
-}
-
-/* 말풍선 스타일 */
-.speech-bubble {
-  background: white;
-  border: 3px solid var(--border-dark);
-  border-radius: 8px;
-  position: relative;
-  padding: 16px;
-  box-shadow: var(--shadow-pixel);
-}
-
-.speech-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 20px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border-right: 3px solid var(--border-dark);
-  border-bottom: 3px solid var(--border-dark);
-  transform: rotate(45deg);
-}
-
-.speech-bubble-top::after {
-  bottom: auto;
-  top: -10px;
-  border-right: none;
-  border-bottom: none;
-  border-left: 3px solid var(--border-dark);
-  border-top: 3px solid var(--border-dark);
-}
-
-/* 입력 필드 스타일 */
-.pixel-input {
-  border: 2px solid var(--border-dark);
-  background: white;
-  padding: 12px;
-  font-family: 'NeoDunggeunmo', monospace;
-  color: var(--text-primary);
-  resize: none;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.pixel-input:focus {
-  border-color: var(--accent-pink);
-  box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.3);
-}
-
-/* 드롭다운 스타일 */
-.pixel-dropdown {
-  border: 2px solid var(--border-dark);
-  background: white;
-  padding: 8px 12px;
-  font-family: 'NeoDunggeunmo', monospace;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 8px center;
-  background-repeat: no-repeat;
-  background-size: 16px;
-  padding-right: 32px;
-}
-
-/* 패널 스타일 */
+/* 패널 스타일 - 단순화 */
 .pixel-panel {
-  background: var(--panel-bg);
+  background: var(--bg-surface);
   border: 3px solid var(--border-dark);
-  box-shadow: var(--shadow-pixel);
-  border-radius: 12px;
-  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border-radius: 0;
 }
 
 .pixel-panel-header {
-  background: linear-gradient(to right in oklab, rgb(173, 216, 230), rgb(255, 182, 193));
-  border-bottom: 3px solid var(--border-dark);
-  padding: 12px 20px;
+  background: var(--bg-pattern);
+  border-bottom: 2px solid var(--border-dark);
+  padding: 16px 24px;
   font-family: 'NeoDunggeunmo', monospace;
   font-weight: bold;
   font-size: 18px;
@@ -189,165 +197,145 @@
   padding: 20px;
 }
 
-/* 로딩 애니메이션 */
-.pixel-loader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-
-.pixel-heart {
-  font-size: 32px;
-  animation: pixelPulse 1s ease-in-out infinite;
-}
-
-@keyframes pixelPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-
-.loading-text {
-  font-family: 'NeoDunggeunmo', monospace;
-  font-size: 16px;
-  color: var(--text-primary);
-  margin-top: 16px;
-}
-
-.dots {
-  animation: pixelDots 1.5s infinite;
-}
-
-@keyframes pixelDots {
-  0%, 20% { content: '.'; }
-  40% { content: '..'; }
-  60%, 100% { content: '...'; }
-}
-
-/* 8비트 픽셀 이미지 필터 */
-.pixel-image {
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-}
-
-/* 토글 스위치 */
-.pixel-toggle {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 30px;
-}
-
-.pixel-toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.pixel-toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  border: 2px solid var(--border-dark);
-  transition: .2s;
-}
-
-.pixel-toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 22px;
-  width: 22px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  border: 1px solid var(--border-dark);
-  transition: .2s;
-}
-
-.pixel-toggle input:checked + .pixel-toggle-slider {
-  background-color: var(--accent-pink);
-}
-
-.pixel-toggle input:checked + .pixel-toggle-slider:before {
-  transform: translateX(26px);
-}
-
-/* 알림/툴팁 스타일 */
-.pixel-tooltip {
-  background: var(--text-primary);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-family: 'NeoDunggeunmo', monospace;
-  font-size: 12px;
-  position: relative;
-  box-shadow: var(--shadow-pixel);
-}
-
-/* 카드 스타일 */
-.pixel-card {
-  background: white;
+/* 입력 필드 스타일 */
+.pixel-input {
   border: 3px solid var(--border-dark);
-  border-radius: 8px;
-  box-shadow: var(--shadow-pixel);
-  overflow: hidden;
-  transition: transform 0.2s;
+  background: white;
+  padding: 12px 16px;
+  font-family: 'NeoDunggeunmo', monospace;
+  color: var(--text-primary);
+  resize: none;
+  outline: none;
+  transition: all 0.2s ease;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border-dark);
 }
 
-.pixel-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0 var(--border-dark);
+/* 말풍선 스타일 (프롬프트 텍스트에어리어용) */
+.speech-bubble {
+  position: relative;
+  border: 3px solid var(--border-dark);
+  background: white;
+  padding: 12px 16px;
+  font-family: 'NeoDunggeunmo', monospace;
+  color: var(--text-primary);
+  resize: none;
+  outline: none;
+  transition: all 0.2s ease;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border-dark);
 }
 
-/* 그리드 레이아웃 */
-.pixel-grid {
-  display: grid;
-  gap: 20px;
+/* 말풍선 꼬리 - 픽셀 아트 스타일 */
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 20px;
+  width: 12px;
+  height: 6px;
+  background: white;
+  border-left: 3px solid var(--border-dark);
+  border-right: 3px solid var(--border-dark);
+  border-bottom: 3px solid var(--border-dark);
+  z-index: 2;
 }
 
-.pixel-grid-2 {
-  grid-template-columns: 1fr 1fr;
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 17px;
+  width: 18px;
+  height: 9px;
+  background: var(--border-dark);
+  z-index: 1;
 }
 
-.pixel-grid-responsive {
-  grid-template-columns: 1fr;
+/* 포커스 시 말풍선 스타일 */
+.speech-bubble:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(255, 182, 193, 0.25), 2px 2px 0 var(--primary);
+  background: rgba(255, 182, 193, 0.05);
 }
 
-@media (min-width: 768px) {
-  .pixel-grid-responsive {
-    grid-template-columns: 1fr 1fr;
+.speech-bubble:focus::after {
+  border-top-color: var(--primary);
+}
+
+.pixel-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(255, 182, 193, 0.25), 0 2px 8px rgba(255, 182, 193, 0.2);
+  background: rgba(255, 182, 193, 0.05);
+}
+
+/* 드롭다운 스타일 */
+.pixel-dropdown {
+  border: 3px solid var(--border-dark);
+  background: white;
+  padding: 8px 12px;
+  font-family: 'NeoDunggeunmo', monospace;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--border-dark);
+}
+
+.pixel-dropdown:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(255, 182, 193, 0.25), 0 2px 8px rgba(255, 182, 193, 0.2);
+  background: rgba(255, 182, 193, 0.05);
+}
+
+/* 탭 버튼 스타일 */
+.tab-button-active {
+  background: var(--bg-pattern) !important;
+  color: var(--text-primary) !important;
+  border: 2px solid var(--border-dark) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* 부드러운 핑크 배경 애니메이션 (선택사항) */
+@keyframes gradientFlow {
+  0% {
+    background: linear-gradient(135deg,
+      var(--bg-base) 0%,
+      rgba(255, 182, 193, 0.1) 50%,
+      var(--bg-pattern) 100%);
+  }
+  50% {
+    background: linear-gradient(135deg,
+      var(--bg-base) 0%,
+      rgba(255, 182, 193, 0.15) 50%,
+      rgba(255, 182, 193, 0.05) 100%);
+  }
+  100% {
+    background: linear-gradient(135deg,
+      var(--bg-base) 0%,
+      rgba(255, 182, 193, 0.1) 50%,
+      var(--bg-pattern) 100%);
   }
 }
 
-@media (min-width: 1024px) {
-  .pixel-grid-responsive {
-    grid-template-columns: 1fr 1fr;
+/* Token rotation animation */
+@keyframes tokenSpin {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
   }
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .pixel-button {
-    padding: 12px 20px;
-    font-size: 14px;
-  }
+.animated-bg {
+  animation: gradientFlow 30s ease infinite;
+}
 
-  .pixel-panel-header {
-    font-size: 16px;
-    padding: 10px 16px;
-  }
-
-  .pixel-panel-content {
-    padding: 16px;
-  }
-
-  .speech-bubble {
-    padding: 12px;
-  }
+.animate-token-spin {
+  animation: tokenSpin 3s ease-in-out infinite;
+  transform-style: preserve-3d;
 }

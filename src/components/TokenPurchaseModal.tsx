@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { XMarkIcon, CurrencyDollarIcon, ExclamationTriangleIcon, SparklesIcon, ShieldCheckIcon, CreditCardIcon, ArrowPathIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { loadTossPayments } from '@tosspayments/payment-sdk';
 import { useTokens } from '../lib/tokenApi';
 import { TOKEN_PRICING } from '../constants/pricing';
@@ -77,7 +78,7 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
     if (isDevelopment) {
       // 개발 모드: 가짜 결제 성공 시뮬레이션
       const shouldSimulate = confirm(
-        `💡 개발 환경 감지!\n\n` +
+        `개발 환경 감지!\n\n` +
         `토스페이먼츠 인증 이슈로 인해 결제 시뮬레이션을 제공합니다.\n\n` +
         `패키지: ${packageInfo.name}\n` +
         `토큰: ${packageInfo.tokens.toLocaleString()}개\n` +
@@ -99,23 +100,11 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
           // 개발 환경에서는 로컬 상태만 업데이트 (백엔드 호출 없이)
           // await purchaseTokens(packageInfo.id, mockPaymentData);
 
-          // 로컬 토큰 잔액 직접 업데이트 (시뮬레이션)
-          console.log('토큰 구매 시뮬레이션:', {
-            packageId: packageInfo.id,
-            tokens: packageInfo.tokens,
-            price: packageInfo.price
-          });
-
           // 실제로 토큰 잔액 증가
           addTokensLocally(packageInfo.tokens);
 
           // 업데이트된 balance 계산 (prop으로 받은 currentBalance 사용)
           const newBalance = currentBalance + packageInfo.tokens;
-          console.log('Purchase completed:', {
-            previousBalance: currentBalance,
-            tokensAdded: packageInfo.tokens,
-            newBalance: newBalance
-          });
 
           alert(`✅ 결제 시뮬레이션 성공!\n${packageInfo.tokens.toLocaleString()}토큰이 충전되었습니다.`);
 
@@ -166,32 +155,27 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-[#FDF6E3] border-2 border-black shadow-[8px_8px_0_0_#000] max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="border-3 border-black shadow-[4px_4px_0_0_#000] max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-dark)' }}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-black font-neodgm flex items-center space-x-2">
-              <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" />
-                <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 14.625v-9.75zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM18.75 9a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75V9z" clipRule="evenodd" />
-              </svg>
+              <CurrencyDollarIcon className="w-6 h-6 text-yellow-500" />
               <span>토큰 구매</span>
             </h2>
             <button
               onClick={onClose}
-              className="text-2xl font-bold text-black hover:text-gray-600 transition-colors font-neodgm"
+              className="flex items-center justify-center w-8 h-8 text-black hover:text-gray-600 transition-colors"
               aria-label="닫기"
             >
-              ×
+              <XMarkIcon className="w-5 h-5" />
             </button>
           </div>
 
           {requiredTokens > 0 && (
             <div className="mb-6 p-4 bg-orange-100 border-2 border-orange-300">
               <p className="text-orange-800 font-semibold font-neodgm flex items-center space-x-2">
-                <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
-                  <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
-                </svg>
+                <ExclamationTriangleIcon className="w-5 h-5 text-orange-600" />
                 <span>{requiredTokens}토큰이 필요합니다</span>
               </p>
               <p className="text-orange-700 text-sm mt-1 font-neodgm">
@@ -265,23 +249,22 @@ export const TokenPurchaseModal: React.FC<TokenPurchaseModalProps> = ({
               className="flex-1 py-2 px-4 bg-[#E57A77] text-white border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#d46a68] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 disabled:shadow-[3px_3px_0_0_#666] disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0_0_#666] transition-all duration-100 ease-in-out font-neodgm"
             >
               {isProcessing ? (
-                <>
-                  <svg className="inline-block animate-spin mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  구매 중...
-                </>
+                <div className="flex items-center justify-center space-x-2">
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                  <span>구매 중...</span>
+                </div>
               ) : (
-                '구매하기'
+                <div className="flex items-center justify-center space-x-2">
+                  <CreditCardIcon className="w-4 h-4" />
+                  <span>구매하기</span>
+                </div>
               )}
             </button>
           </div>
 
           <div className="mt-4 text-xs text-gray-600 text-center font-neodgm">
             <p className="flex items-center justify-center space-x-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+              <LockClosedIcon className="w-4 h-4" />
               <span>안전한 결제가 보장됩니다</span>
             </p>
             <p>토큰은 구매 즉시 계정에 추가됩니다</p>

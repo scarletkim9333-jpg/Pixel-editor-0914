@@ -1,0 +1,303 @@
+/* Landing Page Specific Styles */
+
+/* Custom font definition */
+@import url('https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@latest/neodgm.css');
+
+.font-neodgm {
+  font-family: 'NeoDunggeunmo', 'Courier New', monospace;
+  font-display: block;
+}
+
+/* Hero Section Styles */
+.hero-section {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Clean grid background pattern */
+.pixel-dots-bg {
+  background-image:
+    linear-gradient(rgba(255, 182, 193, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 182, 193, 0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+  /* 도트 대신 깔끔한 격자 패턴, 애니메이션 제거 */
+}
+
+@keyframes driftBackground {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 20px;
+  }
+}
+
+/* Title floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pixel decorative elements */
+.pixel-square {
+  border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes bounce-slow-delayed {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 8s ease-in-out infinite;
+}
+
+.animate-bounce-slow-delayed {
+  animation: bounce-slow-delayed 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+/* Large button variant */
+.pixel-button-large {
+  font-size: 1.25rem;
+  padding: 16px 32px;
+  font-weight: bold;
+  box-shadow: 0 6px 0 var(--border-dark);
+  transform: translateY(0);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pixel-button-large:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 var(--border-dark);
+}
+
+.pixel-button-large:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--border-dark);
+}
+
+/* CSS variables for primary colors used in components */
+:root {
+  --primary-dark: #FF9FB2;
+}
+
+.text-primary-dark {
+  color: var(--primary-dark);
+}
+
+/* Badge styles */
+.badge {
+  font-family: 'NeoDunggeunmo', monospace;
+  font-size: 0.875rem;
+  font-weight: bold;
+  border-radius: 0;
+  backdrop-filter: blur(10px);
+}
+
+/* Features Section */
+.feature-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+}
+
+.icon-wrapper {
+  transition: transform 0.3s ease;
+}
+
+/* Demo Section */
+.demo-item {
+  border-radius: 0;
+  position: relative;
+}
+
+.demo-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 0%, var(--primary) 1%, transparent 2%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.demo-item:hover::before {
+  opacity: 0.1;
+}
+
+.before-after-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0;
+  padding: 1rem;
+  margin: -0.5rem;
+}
+
+/* CTA Section */
+.main-cta {
+  background: linear-gradient(135deg,
+    rgba(255, 182, 193, 0.1) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 182, 193, 0.1) 100%);
+  border-radius: 0;
+  padding: 3rem 2rem;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.main-cta::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="2" height="2" x="0" y="0" fill="%23FFB6C1" opacity="0.3"/><rect width="2" height="2" x="20" y="20" fill="%23FFB6C1" opacity="0.3"/></svg>');
+  pointer-events: none;
+}
+
+/* Testimonial cards */
+.testimonial-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.quote-icon {
+  font-family: serif;
+  line-height: 1;
+}
+
+/* Final CTA banner */
+.final-cta {
+  position: relative;
+  background: linear-gradient(45deg,
+    rgba(255, 182, 193, 0.2) 0%,
+    rgba(196, 181, 253, 0.2) 50%,
+    rgba(255, 182, 193, 0.2) 100%);
+}
+
+/* Footer */
+.footer-section {
+  background: linear-gradient(to bottom, transparent, rgba(243, 244, 246, 0.5));
+}
+
+.footer-links a {
+  position: relative;
+}
+
+.footer-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.footer-links a:hover::after {
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .pixel-title {
+    font-size: 3rem !important;
+  }
+
+  .pixel-subtitle {
+    font-size: 1.125rem !important;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-buttons button {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+
+  .pixel-decorations {
+    display: none;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 182, 193, 0.4) 50%,
+    transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-bounce-slow,
+  .animate-bounce-slow-delayed {
+    animation: none;
+  }
+
+  .pixel-dots-bg {
+    animation: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .pixel-decorations,
+  .hero-buttons {
+    display: none;
+  }
+
+  .pixel-bg {
+    background: white !important;
+  }
+}

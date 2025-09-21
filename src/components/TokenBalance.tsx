@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react'
+import { CurrencyDollarIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTokens } from '../lib/tokenApi'
 import { TokenPurchaseModal } from './TokenPurchaseModal'
-import { PixelTokenIcon } from '../../components/Icons'
 
 interface TokenBalanceProps {
   showUsage?: boolean
@@ -69,21 +69,22 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const displayBalance = forceBalance !== null ? forceBalance : (balance ?? 0)
   const animatedBalance = useCountUp(displayBalance)
 
-  // balance 변화 감지 (디버깅용 로그 제거)
+  // balance 변화 감지 및 UI 업데이트
   useEffect(() => {
-    // console.log('TokenBalance balance changed:', balance);
+    // balance가 변경되면 forceBalance를 리셋하여 실제 balance 사용
+    if (balance !== null && forceBalance !== null) {
+      setForceBalance(null);
+    }
   }, [balance]);
 
-  // 사용자 로그인 시 토큰 정보 가져오기
+  // 사용자 로그인 시 토큰 정보 가져오기 (refreshBalance 의존성 제거)
   useEffect(() => {
-    console.log('TokenBalance useEffect:', { user: !!user, authLoading, loading });
     if (user && !authLoading) {
-      console.log('Calling refreshBalance...');
       refreshBalance().catch((err) => {
         console.error('픽셀 토큰 잔액 조회 실패:', err);
       });
     }
-  }, [user, authLoading, refreshBalance])
+  }, [user, authLoading])
 
   // 로그인하지 않은 경우
   if (!user) {
@@ -104,7 +105,10 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   if (error) {
     return (
       <div className={`text-red-600 ${className}`}>
-        <span>⚠️ {error}</span>
+        <span className="flex items-center space-x-1">
+          <ExclamationTriangleIcon className="w-4 h-4" />
+          <span>{error}</span>
+        </span>
         <button
           onClick={refreshBalance}
           className="ml-2 text-blue-600 hover:underline"
@@ -131,10 +135,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         className="flex items-center justify-center w-10 h-10 bg-transparent hover:bg-gray-100 hover:bg-opacity-20 rounded-full transition-all duration-300 transform hover:scale-110"
         title="픽셀 토큰 충전"
       >
-        <svg className="w-6 h-6 text-yellow-500 animate-spin-token" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" />
-          <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 14.625v-9.75zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM18.75 9a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75V9z" clipRule="evenodd" />
-        </svg>
+        <CurrencyDollarIcon className="w-6 h-6 text-yellow-500 animate-token-spin" />
       </button>
 
       {/* 토큰 구매 모달 */}
@@ -143,7 +144,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         onClose={() => setIsPurchaseModalOpen(false)}
         currentBalance={displayBalance} // 현재 표시 중인 balance 전달
         onPurchaseSuccess={(newBalance) => {
-          console.log('TokenBalance received new balance:', newBalance);
           // 새 balance를 강제로 설정해서 애니메이션 트리거
           if (newBalance !== undefined) {
             setForceBalance(newBalance);

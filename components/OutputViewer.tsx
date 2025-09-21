@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ImageIcon, DownloadIcon } from './Icons';
+import { PhotoIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import type { TokenUsage } from '../types';
 import { useTranslations } from '../contexts/LanguageContext';
 import { LoadingAnimation } from './LoadingAnimation';
@@ -35,7 +35,7 @@ const EmptyState: React.FC = () => {
   const { t } = useTranslations();
   return (
       <div className="flex flex-col items-center justify-center h-full text-center text-gray-600 p-8">
-        <ImageIcon className="w-16 h-16 mb-4 text-gray-400" />
+        <PhotoIcon className="w-16 h-16 mb-4 text-gray-400" />
         <h3 className="text-xl font-semibold text-gray-700 font-neodgm">{t.emptyStateTitle}</h3>
         <p className="text-base">{t.emptyStateDescription}</p>
       </div>
@@ -167,7 +167,7 @@ export const OutputViewer: React.FC<OutputViewerProps> = ({ isLoading, images, e
                       className="inline-flex items-center gap-2 bg-[#2E7D73] text-white font-bold py-2 px-4 border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-[#25645c] transition-all duration-100 ease-in-out active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
                       aria-label={t.highResDownload}
                   >
-                      <DownloadIcon className="w-5 h-5" />
+                      <ArrowDownTrayIcon className="w-5 h-5" />
                       <span>{t.highResDownload}</span>
                   </button>
                   {onEditImage && (

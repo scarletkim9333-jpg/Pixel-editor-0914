@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDownIcon } from './Icons';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { AspectRatio } from '../types';
 
 interface OutputSizeOption {

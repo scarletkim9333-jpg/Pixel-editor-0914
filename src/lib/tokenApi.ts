@@ -11,72 +11,100 @@ export const useTokens = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 토큰 잔액 새로고침
+  // 토큰 잔액 새로고침 (완전 더미 모드)
   const refreshBalance = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('About to call tokenApi.getBalance()...');
-      // 임시로 하드코딩된 값 사용 (하지만 기존 balance가 있으면 유지)
-      console.log('Using hardcoded token values for testing...');
+      // 더미 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 기존 balance가 null이거나 0이면 초기값 90 설정, 아니면 현재값 유지
-      if (balance === null || balance === 0) {
-        setBalance(90);
-        setTotalUsed(10);
+      // 로컬스토리지에서 토큰 잔액 확인
+      const savedBalance = localStorage.getItem('mock-token-balance');
+      const savedUsed = localStorage.getItem('mock-token-used');
+
+      if (savedBalance !== null) {
+        const newBalance = parseInt(savedBalance);
+        const newTotalUsed = parseInt(savedUsed || '0');
+        setBalance(newBalance);
+        setTotalUsed(newTotalUsed);
+
+        // 커스텀 이벤트 발생
+        const event = new CustomEvent('tokenBalanceChanged', {
+          detail: { balance: newBalance, totalUsed: newTotalUsed }
+        });
+        window.dispatchEvent(event);
+      } else {
+        // 처음 실행 시 기본값 설정
+        console.log('초기 토큰 설정: 100 tokens');
+        setBalance(100);
+        setTotalUsed(0);
+        localStorage.setItem('mock-token-balance', '100');
+        localStorage.setItem('mock-token-used', '0');
+
+        // 초기값도 이벤트 발생
+        const event = new CustomEvent('tokenBalanceChanged', {
+          detail: { balance: 100, totalUsed: 0 }
+        });
+        window.dispatchEvent(event);
       }
-      // 이미 balance가 있으면 그대로 유지 (addTokensLocally로 업데이트된 값 보존)
     } catch (err) {
-      console.error('Token balance fetch error:', err);
-      console.error('Error details:', err);
-      const errorMessage = err instanceof Error ? err.message : '토큰 정보를 가져오는데 실패했습니다';
-      console.error('Setting error message:', errorMessage);
-      setError(errorMessage);
-
-      // 인증 오류가 아닌 경우에만 기본값 설정
-      if (!errorMessage.includes('인증') && !errorMessage.includes('401')) {
-        if (balance === null) {
-          setBalance(0);
-          setTotalUsed(0);
-        }
-      }
+      console.error('토큰 로드 실패:', err);
+      setBalance(100);
+      setTotalUsed(0);
     } finally {
       setLoading(false);
     }
-  }, [balance]);
+  }, []);
 
   
 
-  // 토큰 사용
+  // 토큰 사용 (완전 더미 모드)
   const useTokens = async (amount: number, description?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      // 실제로는 백엔드에서 토큰 차감이 자동으로 처리됩니다
-      // 이 함수는 프론트엔드 상태 동기화용으로만 사용
-
       // 잔액이 부족한 경우 에러 발생
       if (balance !== null && balance < amount) {
         throw new Error(`토큰이 부족합니다. 필요: ${amount}토큰, 현재: ${balance}토큰`);
       }
 
-      // 토큰 사용 성공 시 로컬 상태 업데이트
-      if (balance !== null) {
-        setBalance(balance - amount);
-        setTotalUsed(prev => prev + amount);
-      }
+      console.log(`토큰 사용 - ${amount}토큰, 설명: ${description}`);
+
+      // 더미 지연 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 로컬에서 토큰 차감
+      const newBalance = (balance || 0) - amount;
+      const newTotalUsed = totalUsed + amount;
+
+      setBalance(newBalance);
+      setTotalUsed(newTotalUsed);
+
+      // 로컬스토리지에 저장
+      localStorage.setItem('mock-token-balance', newBalance.toString());
+      localStorage.setItem('mock-token-used', newTotalUsed.toString());
+
+      // 커스텀 이벤트 발생 (같은 탭 내 다른 컴포넌트에 알림)
+      const event = new CustomEvent('tokenBalanceChanged', {
+        detail: { balance: newBalance, totalUsed: newTotalUsed }
+      });
+      window.dispatchEvent(event);
+
+      console.log(`토큰 차감 완료 - 남은 토큰: ${newBalance}`);
 
       return {
         success: true,
         usedAmount: amount,
-        remainingBalance: (balance || 0) - amount,
-        totalUsed: totalUsed + amount,
-        description: description || 'Token usage'
+        remainingBalance: newBalance,
+        totalUsed: newTotalUsed,
+        description: description || 'Token usage (mock)'
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '토큰 사용에 실패했습니다';
+      console.error('토큰 사용 실패:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -115,6 +143,38 @@ export const useTokens = () => {
       setLoading(false);
     }
   };
+
+  // localStorage 변경 감지를 위한 useEffect 추가
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mock-token-balance' && e.newValue !== null) {
+        setBalance(parseInt(e.newValue));
+      }
+      if (e.key === 'mock-token-used' && e.newValue !== null) {
+        setTotalUsed(parseInt(e.newValue));
+      }
+    };
+
+    // storage 이벤트 리스너 등록
+    window.addEventListener('storage', handleStorageChange);
+
+    // 커스텀 이벤트 리스너도 추가 (같은 탭 내에서의 변경 감지)
+    const handleCustomTokenChange = ((e: CustomEvent) => {
+      if (e.detail.balance !== undefined) {
+        setBalance(e.detail.balance);
+      }
+      if (e.detail.totalUsed !== undefined) {
+        setTotalUsed(e.detail.totalUsed);
+      }
+    }) as EventListener;
+
+    window.addEventListener('tokenBalanceChanged', handleCustomTokenChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('tokenBalanceChanged', handleCustomTokenChange);
+    };
+  }, []);
 
   // 토큰 사용 내역 조회
   const getTokenHistory = async () => {
@@ -175,13 +235,19 @@ export const useTokens = () => {
 
   // 개발 환경용 토큰 직접 추가 함수
   const addTokensLocally = (amount: number) => {
-    console.log('addTokensLocally called:', { currentBalance: balance, amount, newBalance: (balance || 0) + amount });
-
     // balance가 null이면 0으로 시작
     const currentBalance = balance || 0;
     const newBalance = currentBalance + amount;
     setBalance(newBalance);
-    console.log('Token balance updated from', currentBalance, 'to', newBalance);
+
+    // 로컬스토리지에 저장
+    localStorage.setItem('mock-token-balance', newBalance.toString());
+
+    // 커스텀 이벤트 발생 (같은 탭 내 다른 컴포넌트에 알림)
+    const event = new CustomEvent('tokenBalanceChanged', {
+      detail: { balance: newBalance, totalUsed }
+    });
+    window.dispatchEvent(event);
   };
 
   return {
