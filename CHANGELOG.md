@@ -1,3 +1,21 @@
+# [](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/compare/v0.1.1...v) (2025-09-21)
+
+
+### Features
+
+* Controls UI 개선 - 폰트 통일 및 섹션 구분 ([b0ed3ee](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/b0ed3ee4c7c41b2e002031a3bc160803cb6b6809))
+* Heroicons 통일 및 로그인 상태 관리 개선 ([11b4c3e](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/11b4c3e2dca54fef9f3a642b498c5a65a7bf1821))
+* Phase 9 완료 - 최종 정리 및 배포 준비 ([5d75a22](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/5d75a225f1eaeec358f15670ba572be01188ae0a))
+* UI/UX 대폭 개선 및 용어 통일 ([da54880](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/da54880e1e2b3bf7a226be1f5ede2fdb0e127ae2))
+* 세션 3 완료 - NewLayoutApp.tsx 완전 기능 구현 ([7f12ab0](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/7f12ab00d4fbbc98f8df24ca188424425f33ac69))
+* 세션 4 완료 - 백엔드 연동 및 서버 환경 구성 ([937c1a1](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/937c1a19993331696a71aea19ebf35a452a43332))
+* 세션 6 완료 - 종횡비/해상도 기능 복원 및 OKLCH 색상 적용 ([7249bf5](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/7249bf5d94923ab0886c47c71e94d3eb77c25887))
+* 세션 7 완료 - 프리셋 기능 복원 및 UI 개선 ([2e922ff](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/2e922ffb10da0d31c5fec0ed08924ae1df52962a))
+* 토큰 비용 체계 개선 및 모델별 정책 적용 ([6e869db](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/6e869db4db1b7c3ec4ede3d7672ec74d47e5db94))
+* 픽셀 에디터 UI/UX 대폭 개선 및 토큰 시스템 완성 ([ee315b7](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/commit/ee315b7f793969a182e40b31839c82f979de03d8))
+
+
+
 # [](https://github.com/scarletkim9333-jpg/Pixel-editor-0914/compare/v0.1.1...v) (2025-09-19)
 
 
