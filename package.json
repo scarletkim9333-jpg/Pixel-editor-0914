@@ -6,7 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:staging": "vite build --mode staging",
+    "build:prod": "vite build --mode production",
+    "preview": "vite preview",
+    "preview:prod": "vite preview --mode production",
+    "analyze": "npm run build && npx vite-bundle-analyzer dist",
+    "lighthouse": "lhci autorun",
+    "type-check": "tsc --noEmit",
+    "test:build": "npm run build && npm run preview",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean && npm run type-check"
   },
   "dependencies": {
     "@google/genai": "^1.16.0",
@@ -25,6 +34,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "rimraf": "^5.0.5",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

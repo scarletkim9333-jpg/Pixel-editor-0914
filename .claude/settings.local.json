@@ -14,7 +14,13 @@
       "Bash(git push:*)",
       "Read(//d/**)",
       "Bash(git pull:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build:*)",
+      "Bash(vite build)",
+      "Bash(npx vite:*)",
+      "Bash(npm run preview:*)"
     ],
     "deny": [],
     "ask": []

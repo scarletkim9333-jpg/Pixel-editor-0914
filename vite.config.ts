@@ -4,8 +4,10 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const isDev = mode === 'development';
+    const isProd = mode === 'production';
 
     return {
+
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
@@ -74,14 +76,7 @@ export default defineConfig(({ mode }) => {
 
         // 번들 크기 최적화
         target: 'esnext',
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: !isDev,
-            drop_debugger: !isDev,
-            pure_funcs: isDev ? [] : ['console.log', 'console.info', 'console.debug']
-          }
-        },
+        minify: isProd ? 'esbuild' : false,
 
         // 청크 크기 경고 임계값
         chunkSizeWarningLimit: 1000,

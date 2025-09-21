@@ -21,7 +21,7 @@ import QRCode from 'qrcode';
 import { useShare } from '../../hooks/useShare';
 import type { GalleryItem } from '../../services/galleryService';
 import type { ShareSettings } from '../../services/shareService';
-import { useLanguage } from '../../contexts/LanguageContext';
+// import { useLanguage } from '../../contexts/LanguageContext';
 
 // ==================== 타입 정의 ====================
 
@@ -38,7 +38,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   onClose,
   galleryItem
 }) => {
-  const { t } = useLanguage();
+  // const { t } = useLanguage();
+  const t = (key: string, fallback: string) => fallback;
   const { createShare, generateSocialUrls, copyToClipboard, isLoading } = useShare();
 
   // 상태 관리

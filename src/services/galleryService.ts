@@ -3,7 +3,7 @@
  * 사용자의 이미지 갤러리를 관리합니다.
  */
 
-import { storageManager } from './storageService';
+import { storageService } from './storageService';
 import type { StorageItem, ListOptions, StorageUsage } from './storageService';
 
 // ==================== 타입 정의 ====================
@@ -45,7 +45,7 @@ class GalleryService {
     thumbnailUrl?: string
   ): Promise<string> {
     try {
-      const itemId = await storageManager.save({
+      const itemId = await storageService.save({
         name,
         imageUrl,
         thumbnailUrl,
@@ -67,7 +67,7 @@ class GalleryService {
    */
   async loadImage(id: string): Promise<GalleryItem | null> {
     try {
-      return await storageManager.load(id);
+      return await storageService.load(id);
     } catch (error) {
       console.error('갤러리 로드 실패:', error);
       return null;
@@ -79,7 +79,7 @@ class GalleryService {
    */
   async deleteImage(id: string): Promise<void> {
     try {
-      await storageManager.delete(id);
+      await storageService.delete(id);
       console.log('갤러리 이미지 삭제 완료:', id);
     } catch (error) {
       console.error('갤러리 삭제 실패:', error);
@@ -92,7 +92,7 @@ class GalleryService {
    */
   async listImages(options: GalleryListOptions = {}): Promise<GalleryItem[]> {
     try {
-      let items = await storageManager.list(options);
+      let items = await storageService.list(options);
 
       // 모델 필터링
       if (options.modelFilter) {
@@ -122,7 +122,7 @@ class GalleryService {
    */
   async getUsage(): Promise<StorageUsage> {
     try {
-      return await storageManager.getUsage();
+      return await storageService.getUsage();
     } catch (error) {
       console.error('갤러리 사용량 조회 실패:', error);
       return {
@@ -230,8 +230,8 @@ class GalleryService {
    */
   async clearGallery(): Promise<void> {
     try {
-      if (storageManager.clear) {
-        await storageManager.clear();
+      if (storageService.clear) {
+        await storageService.clear();
         console.log('갤러리 전체 삭제 완료');
       } else {
         // clear 메소드가 없으면 개별 삭제
@@ -297,14 +297,14 @@ class GalleryService {
    * 현재 저장소 티어 확인
    */
   getCurrentTier() {
-    return storageManager.getCurrentTier();
+    return storageService.getCurrentTier();
   }
 
   /**
    * 저장 가능 여부 확인
    */
   async canSave(): Promise<boolean> {
-    return await storageManager.canSave();
+    return await storageService.canSave();
   }
 }
 
