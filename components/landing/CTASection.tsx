@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslations } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -12,7 +11,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 const CTASection: React.FC = () => {
-  const navigate = useNavigate();
   const { language } = useTranslations();
   const { user } = useAuth();
 
@@ -28,24 +26,6 @@ const CTASection: React.FC = () => {
       instantStartDesc: '복잡한 설정 없음',
       primaryCta: user ? '앱으로 이동' : '무료로 시작하기',
       secondaryCta: '토큰 요금제 보기',
-      testimonialTitle: '사용자 후기',
-      testimonials: [
-        {
-          text: 'AI가 만드는 픽셀 아트 퀄리티가 정말 놀라워요!',
-          author: '김디자이너',
-          role: 'UI/UX 디자이너'
-        },
-        {
-          text: '게임 아트 제작 시간이 반으로 줄었습니다.',
-          author: '박개발자',
-          role: '게임 개발자'
-        },
-        {
-          text: '멀티 앵글 기능으로 캐릭터 시트를 쉽게 만들어요.',
-          author: '이아티스트',
-          role: '일러스트레이터'
-        }
-      ],
       footer: {
         copyright: '© 2024 Pixel Editor AI. All rights reserved.',
         privacy: '개인정보처리방침',
@@ -64,24 +44,6 @@ const CTASection: React.FC = () => {
       instantStartDesc: 'No complex setup',
       primaryCta: user ? 'Go to App' : 'Start for Free',
       secondaryCta: 'View Pricing Plans',
-      testimonialTitle: 'User Reviews',
-      testimonials: [
-        {
-          text: 'The AI pixel art quality is absolutely amazing!',
-          author: 'Kim Designer',
-          role: 'UI/UX Designer'
-        },
-        {
-          text: 'Game art production time was cut in half.',
-          author: 'Park Developer',
-          role: 'Game Developer'
-        },
-        {
-          text: 'Multi-angle feature makes character sheets easy.',
-          author: 'Lee Artist',
-          role: 'Illustrator'
-        }
-      ],
       footer: {
         copyright: '© 2024 Pixel Editor AI. All rights reserved.',
         privacy: 'Privacy Policy',
@@ -94,12 +56,15 @@ const CTASection: React.FC = () => {
   const texts = ctaTexts[language];
 
   const handlePrimaryCTA = () => {
-    navigate('/app');
+    // 커스텀 라우팅 시스템 사용
+    window.history.pushState({}, '', '/app');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const handleSecondaryCTA = () => {
-    // Scroll to pricing or open pricing modal
-    navigate('/app');
+    // 커스텀 라우팅 시스템 사용
+    window.history.pushState({}, '', '/app');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   return (
@@ -163,30 +128,6 @@ const CTASection: React.FC = () => {
           </div>
         </div>
 
-        {/* Testimonials */}
-        <div className="testimonials-section">
-          <h3 className="text-3xl font-bold text-center mb-12 text-gray-800 font-neodgm">
-            {texts.testimonialTitle}
-          </h3>
-
-          <div className="testimonials-grid grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            {texts.testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="testimonial-card pixel-border bg-white p-6 hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="quote-icon text-4xl text-primary mb-3">"</div>
-                <p className="text-gray-700 mb-4 italic font-neodgm leading-relaxed">
-                  {testimonial.text}
-                </p>
-                <div className="author-info">
-                  <p className="font-bold text-gray-800 font-neodgm">{testimonial.author}</p>
-                  <p className="text-sm text-gray-600 font-neodgm">{testimonial.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Final CTA banner */}
         <div className="final-cta pixel-border bg-gradient-to-r from-primary/20 to-purple-100 p-8 text-center">

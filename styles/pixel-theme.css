@@ -3,8 +3,8 @@
 
 :root {
   /* 메인 컬러 - 2-3개로 제한 */
-  --primary: #FFB6C1;        /* 시그니처 파스텔 핑크 */
-  --primary-dark: #FF9FB2;   /* 호버/액티브용 */
+  --primary: #FFDEE5;        /* 부드러운 파스텔 핑크 */
+  --primary-dark: #FFCAD4;   /* 호버/액티브용 */
   --secondary: #2C3E50;      /* 다크 네이비 */
 
   /* 배경 계층 */
@@ -40,6 +40,14 @@
     linear-gradient(90deg, rgba(255, 182, 193, 0.3) 1px, transparent 1px);
   background-size: 20px 20px;
   min-height: 100vh;
+}
+
+/* 텍스트 유틸리티 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 픽셀 보더 스타일 */

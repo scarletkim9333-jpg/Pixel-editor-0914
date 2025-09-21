@@ -3,14 +3,24 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// 개발 환경을 위한 안전한 기본값
+const DUMMY_URL = 'https://placeholder.supabase.co'
+const DUMMY_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDA5OTUyMDAsImV4cCI6MTk1NjM1NTIwMH0.J4Fzy5-ZKnOj2P5P9aAf34RqbcY9A3v5PKdF6jMtFqM'
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables - using dummy client')
+  console.warn('⚠️ Missing Supabase environment variables - using dummy client for development')
 }
 
+// 환경 변수가 없어도 앱이 크래시되지 않도록 처리
 export const supabase = createClient(
-  supabaseUrl || 'https://dummy.supabase.co',
-  supabaseAnonKey || 'dummy-key'
+  supabaseUrl || DUMMY_URL,
+  supabaseAnonKey || DUMMY_KEY
 )
+
+// 환경 변수 상태 확인용 함수
+export const hasSupabaseConfig = (): boolean => {
+  return !!(supabaseUrl && supabaseAnonKey)
+}
 
 export type Database = {
   public: {

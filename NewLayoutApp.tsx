@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { XMarkIcon, Cog6ToothIcon, SparklesIcon, CurrencyDollarIcon, GlobeAltIcon, LockClosedIcon, CheckCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { XMarkIcon, Cog6ToothIcon, SparklesIcon, CurrencyDollarIcon, GlobeAltIcon, LockClosedIcon, CheckCircleIcon, PencilIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 import { LanguageProvider, useTranslations } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './styles/pixel-theme.css';
@@ -16,6 +17,12 @@ import { TokenPurchaseModal } from './src/components/TokenPurchaseModal';
 import PaymentCallback from './src/components/PaymentCallback';
 import { ImageUploader } from './components/ImageUploader';
 import { DrawingCanvas } from './components/DrawingCanvas';
+import ExampleSection from './src/components/examples/ExampleSection';
+import { useExamples } from './src/hooks/useExamples';
+import type { ExampleConfig } from './src/config/examples.config';
+import { GalleryModal } from './src/components/gallery/GalleryModal';
+import { useGallery } from './src/hooks/useGallery';
+import type { GalleryItem } from './src/services/galleryService';
 
 // 상태 표시용 작은 점 컴포넌트 (픽셀 스타일)
 const StatusDot: React.FC<{ color: string; className?: string }> = ({ color, className = '' }) => (
@@ -30,9 +37,12 @@ const StatusDot: React.FC<{ color: string; className?: string }> = ({ color, cla
 );
 
 const NewLayoutAppContent: React.FC = () => {
+  const navigate = useNavigate();
   const { t, language, toggleLanguage } = useTranslations();
   const { user, signInWithGoogle, signOut } = useAuth();
   const { balance, refreshBalance, useTokens: useTokensFunction } = useTokens();
+  const { applyExample } = useExamples();
+  const { saveImage } = useGallery();
 
   // 모드 및 기본 상태
   const [currentMode, setCurrentMode] = useState<'create' | 'edit'>('create');
@@ -78,6 +88,7 @@ const NewLayoutAppContent: React.FC = () => {
   const [paymentCallbackType, setPaymentCallbackType] = useState<'success' | 'fail' | null>(null);
   const [selectedImageForModal, setSelectedImageForModal] = useState<string | null>(null);
   const [isDrawingCanvasOpen, setIsDrawingCanvasOpen] = useState(false);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
 
   // 제어 관련 상태
   const [creativity, setCreativity] = useState(0.5);
@@ -286,6 +297,34 @@ const NewLayoutAppContent: React.FC = () => {
       setGeneratedImages(result.images);
       setLastTokenUsage(result.usage);
 
+      // 갤러리에 자동 저장 (첫 번째 이미지만)
+      if (result.images.length > 0 && user) {
+        try {
+          const imageName = `Generated-${Date.now()}`;
+          const settings = {
+            model: request.model,
+            aspectRatio: request.aspectRatio,
+            resolution: request.resolution,
+            creativity,
+            presets: selectedPresets.map(p => p.name).join(', '),
+            numberOfOutputs: request.numberOfOutputs
+          };
+
+          await saveImage(
+            imageName,
+            result.images[0], // 첫 번째 이미지만 저장
+            request.prompt,
+            request.model,
+            settings
+          );
+
+          console.log('갤러리에 자동 저장 완료:', imageName);
+        } catch (saveError) {
+          console.warn('갤러리 자동 저장 실패:', saveError);
+          // 저장 실패는 에러로 표시하지 않음 (생성은 성공했으므로)
+        }
+      }
+
       // 생성 성공 후에만 토큰 차감
       console.log(`실제 토큰 차감 - ${tokensRequired}토큰 소모`);
       const tokenResult = await useTokensFunction(tokensRequired, `이미지 생성: ${request.prompt.substring(0, 50)}...`);
@@ -368,6 +407,43 @@ const NewLayoutAppContent: React.FC = () => {
     setSelectedImageForModal(imageUrl);
   }, []);
 
+  // 예시 클릭 핸들러
+  const handleExampleClick = useCallback(async (example: ExampleConfig) => {
+    try {
+      await applyExample(example, {
+        setCurrentMode,
+        setPrompt,
+        setCreativity,
+        setModel,
+        setAspectRatio,
+        setResolution,
+        setNumberOfOutputs,
+        setSelectedPresets,
+        setSelectedPresetOptionIds,
+        setImages,
+        scrollToTop: () => window.scrollTo({ top: 0, behavior: 'smooth' })
+      });
+
+      // 설정 적용 후 Results 탭으로 전환
+      setActiveTab('results');
+    } catch (error) {
+      console.error('예시 적용 실패:', error);
+      setError('예시 설정을 적용하는데 실패했습니다.');
+    }
+  }, [
+    applyExample,
+    setCurrentMode,
+    setPrompt,
+    setCreativity,
+    setModel,
+    setAspectRatio,
+    setResolution,
+    setNumberOfOutputs,
+    setSelectedPresets,
+    setSelectedPresetOptionIds,
+    setImages
+  ]);
+
   // 실제 이미지를 Input으로 설정하는 함수
   const handleSetImageAsInput = useCallback(async (imageUrl: string) => {
     try {
@@ -402,6 +478,41 @@ const NewLayoutAppContent: React.FC = () => {
   const handleDrawingSave = (file: File) => {
     setImages(prev => [file, ...prev]);
     setIsDrawingCanvasOpen(false);
+  };
+
+  // 갤러리에서 이미지 불러오기
+  const handleGalleryImageSelect = async (galleryItem: GalleryItem) => {
+    try {
+      // 이미지 URL을 File 객체로 변환
+      const response = await fetch(galleryItem.imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], galleryItem.name, { type: 'image/png' });
+
+      // 이미지를 현재 이미지 목록에 추가
+      setImages(prev => [file, ...prev]);
+
+      // 관련 설정들 적용
+      if (galleryItem.settings) {
+        if (galleryItem.settings.model) setModel(galleryItem.settings.model);
+        if (galleryItem.settings.aspectRatio) setAspectRatio(galleryItem.settings.aspectRatio);
+        if (galleryItem.settings.resolution) setResolution(galleryItem.settings.resolution);
+        if (galleryItem.settings.creativity !== undefined) setCreativity(galleryItem.settings.creativity);
+      }
+
+      // 프롬프트 설정
+      setPrompt(galleryItem.prompt);
+
+      // Edit 모드로 전환
+      setCurrentMode('edit');
+
+      // 갤러리 모달 닫기
+      setIsGalleryModalOpen(false);
+
+      console.log('갤러리 이미지 로드 완료:', galleryItem.name);
+    } catch (error) {
+      console.error('갤러리 이미지 로드 실패:', error);
+      setError('이미지를 불러오는데 실패했습니다.');
+    }
   };
 
   const handleUpscale = useCallback(async (imageUrl: string, imageIndex: number) => {
@@ -445,6 +556,30 @@ const NewLayoutAppContent: React.FC = () => {
         count: 1
       });
 
+      // 갤러리에 업스케일된 이미지 자동 저장
+      if (user) {
+        try {
+          const imageName = `Upscaled-${Date.now()}`;
+          const settings = {
+            model: 'KIE NanoBanana Upscale',
+            originalModel: model, // 원본 이미지의 모델
+            upscaleRatio: '4x'
+          };
+
+          await saveImage(
+            imageName,
+            imageUrl, // 실제로는 업스케일된 이미지 URL
+            `Upscaled version of image`, // 업스케일 설명
+            'KIE NanoBanana Upscale',
+            settings
+          );
+
+          console.log('업스케일된 이미지 갤러리 저장 완료:', imageName);
+        } catch (saveError) {
+          console.warn('업스케일 이미지 갤러리 저장 실패:', saveError);
+        }
+      }
+
       // 실제로는 업스케일된 이미지 URL로 교체해야 합니다
       // 데모용으로는 원본 이미지 유지
       console.log('업스케일 완료');
@@ -477,55 +612,68 @@ const NewLayoutAppContent: React.FC = () => {
     <div className="min-h-screen pixel-bg font-neodgm">
       {/* 헤더 */}
       <header className="sticky top-0 z-40 border-b-3 shadow-lg" style={{
-        background: 'linear-gradient(to right in oklab, rgb(241, 240, 232), rgb(229, 225, 218))',
-        borderBottomColor: 'rgb(137, 168, 178)',
+        background: 'linear-gradient(to right in oklab, rgb(255, 222, 229), rgb(255, 202, 212))',
+        borderBottomColor: '#2C3E50',
         borderBottomWidth: '3px'
       }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* 로고 영역 */}
-            <div className="flex items-center space-x-3">
-              <svg className="w-8 h-8 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer group"
+              title="홈으로 이동"
+            >
+              <svg className="w-8 h-8 text-pink-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <h1 className="text-2xl font-bold text-black">PIXEL EDITOR</h1>
-            </div>
+              <h1 className="text-2xl font-bold text-black group-hover:text-gray-700 transition-colors">PIXEL EDITOR</h1>
+            </button>
 
             {/* 중앙 탭 영역 */}
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg border-2 border-black">
+            <div className="flex space-x-3">
               <button
                 onClick={() => handleModeChange('create')}
-                className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
+                className={`px-4 py-2 text-sm font-semibold transition-all flex items-center space-x-2 border-3 ${
                   currentMode === 'create'
-                    ? 'bg-white border-2 border-black shadow-md text-black'
-                    : 'text-gray-600 hover:text-black'
+                    ? 'border-pink-400 bg-white shadow-[3px_3px_0_0_#f472b6] text-black'
+                    : 'border-black bg-white text-gray-600 hover:text-black shadow-[2px_2px_0_0_#000]'
                 }`}
                 title={t.createImage}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="hidden sm:inline">{t.createImage}</span>
+                <span className="hidden sm:inline">CREATE</span>
               </button>
               <button
                 onClick={() => handleModeChange('edit')}
-                className={`px-4 py-2 text-sm font-semibold rounded transition-all flex items-center space-x-2 ${
+                className={`px-4 py-2 text-sm font-semibold transition-all flex items-center space-x-2 border-3 ${
                   currentMode === 'edit'
-                    ? 'bg-white border-2 border-black shadow-md text-black'
-                    : 'text-gray-600 hover:text-black'
+                    ? 'border-pink-400 bg-white shadow-[3px_3px_0_0_#f472b6] text-black'
+                    : 'border-black bg-white text-gray-600 hover:text-black shadow-[2px_2px_0_0_#000]'
                 }`}
                 title={t.editImage}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-                <span className="hidden sm:inline">{t.editImage}</span>
+                <span className="hidden sm:inline">EDIT</span>
               </button>
             </div>
 
             {/* 우측 유틸리티 영역 */}
             <div className="flex items-center space-x-4">
+
+              {/* 갤러리 버튼 */}
+              <button
+                onClick={() => setIsGalleryModalOpen(true)}
+                className="relative w-10 h-10 flex items-center justify-center border-2 border-black bg-white hover:bg-gray-100 transition-all"
+                title="내 갤러리"
+              >
+                <Squares2X2Icon className="w-6 h-6 text-black" />
+              </button>
 
               {/* 토큰 잔액 */}
               <TokenBalance />
@@ -560,9 +708,11 @@ const NewLayoutAppContent: React.FC = () => {
       </header>
 
       {/* 메인 레이아웃 */}
-      <main className="flex flex-col md:flex-row min-h-screen pt-12">
-        {/* 좌측 Input 패널 */}
-        <div className="w-full md:w-1/2 p-2 md:p-3 h-screen md:h-auto">
+      <main className="flex justify-center min-h-screen pt-12">
+        <div className="w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* 좌측 Input 패널 */}
+            <div className="w-full md:w-1/2 h-screen md:h-auto">
           <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
@@ -853,8 +1003,8 @@ const NewLayoutAppContent: React.FC = () => {
           </div>
         </div>
 
-        {/* 우측 Output 패널 */}
-        <div className="w-full md:w-1/2 p-2 md:p-3 h-screen md:h-auto">
+            {/* 우측 Output 패널 */}
+            <div className="w-full md:w-1/2 h-screen md:h-auto">
           <div className="pixel-panel h-full md:h-[calc(100vh-6rem)] flex flex-col">
             {/* 패널 헤더 */}
             <div className="pixel-panel-header">
@@ -965,7 +1115,12 @@ const NewLayoutAppContent: React.FC = () => {
               </div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
+
+        {/* 예시 섹션 */}
+        <ExampleSection onExampleClick={handleExampleClick} />
       </main>
 
       {/* 에러 메시지 */}
@@ -1089,6 +1244,39 @@ const NewLayoutAppContent: React.FC = () => {
         onClose={() => setIsDrawingCanvasOpen(false)}
         onSave={handleDrawingSave}
       />
+
+      {/* 갤러리 모달 */}
+      <GalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onImageSelect={handleGalleryImageSelect}
+        title="내 갤러리"
+      />
+
+      {/* Footer */}
+      <footer className="mt-12 py-8 border-t-3 border-black" style={{
+        background: 'linear-gradient(to right in oklab, rgb(255, 222, 229), rgb(255, 202, 212))',
+        borderTopColor: '#2C3E50'
+      }}>
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-gray-700 mb-4 font-neodgm text-sm">
+              © 2024 Pixel Editor AI. All rights reserved.
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 text-sm">
+              <a href="#" className="text-gray-600 hover:text-gray-800 transition-colors font-neodgm">
+                개인정보처리방침
+              </a>
+              <a href="#" className="text-gray-600 hover:text-gray-800 transition-colors font-neodgm">
+                이용약관
+              </a>
+              <a href="#" className="text-gray-600 hover:text-gray-800 transition-colors font-neodgm">
+                문의하기
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

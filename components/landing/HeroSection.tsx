@@ -1,14 +1,14 @@
 import React from 'react';
 import { SparklesIcon, PhotoIcon, CubeIcon, FireIcon, BoltIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
 import { useTranslations } from '../../contexts/LanguageContext';
 
 const HeroSection: React.FC = () => {
-  const navigate = useNavigate();
   const { language, t: translations } = useTranslations();
 
   const handleStartCreating = () => {
-    navigate('/app');
+    // 커스텀 라우팅 시스템 사용
+    window.history.pushState({}, '', '/app');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const handleViewExamples = () => {

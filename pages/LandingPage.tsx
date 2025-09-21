@@ -2,8 +2,8 @@ import React from 'react';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { AuthProvider } from '../contexts/AuthContext';
 import HeroSection from '../components/landing/HeroSection';
+import ExampleShowcase from '../components/landing/ExampleShowcase';
 import FeaturesGrid from '../components/landing/FeaturesGrid';
-import DemoSection from '../components/landing/DemoSection';
 import CTASection from '../components/landing/CTASection';
 
 const LandingPage: React.FC = () => {
@@ -14,8 +14,8 @@ const LandingPage: React.FC = () => {
           <div className="pixel-bg fixed inset-0 pointer-events-none z-0"></div>
           <div className="relative z-10">
             <HeroSection />
+            <ExampleShowcase />
             <FeaturesGrid />
-            <DemoSection />
             <CTASection />
           </div>
         </div>

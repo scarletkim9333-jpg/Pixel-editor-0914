@@ -290,6 +290,146 @@ html {
   }
 }
 
+/* Example Showcase Styles */
+.showcase-container {
+  position: relative;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-container img {
+  transition: transform 0.3s ease;
+}
+
+.image-container:hover img {
+  transform: scale(1.02);
+}
+
+/* Pixel badge styles */
+.pixel-badge {
+  border-radius: 0;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  font-family: 'NeoDunggeunmo', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Navigation arrows */
+.pixel-button-icon {
+  border-radius: 0;
+  border: 3px solid var(--border-dark, #000);
+  background: var(--bg-light, #fff);
+  box-shadow: 2px 2px 0 var(--border-dark, #000);
+  transition: all 0.2s ease;
+}
+
+.pixel-button-icon:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--border-dark, #000);
+}
+
+.pixel-button-icon:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--border-dark, #000);
+}
+
+/* Modal styles */
+.modal-overlay {
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Thumbnail navigation */
+.thumbnail-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary, #FFB6C1) transparent;
+}
+
+.thumbnail-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.thumbnail-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thumbnail-nav::-webkit-scrollbar-thumb {
+  background: var(--primary, #FFB6C1);
+  border-radius: 0;
+}
+
+/* Enhanced hover effects */
+.feature-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--primary, #FFB6C1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover::after {
+  opacity: 1;
+}
+
+/* Gradient background for Example Showcase */
+.example-showcase {
+  position: relative;
+}
+
+.example-showcase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 182, 193, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(196, 181, 253, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.example-showcase > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Print styles */
 @media print {
   .pixel-decorations,
