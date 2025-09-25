@@ -123,9 +123,6 @@
 
   "framework": "vite",
 
-  "env": {
-    "VITE_VERCEL_ENV": "@vercel-env"
-  },
 
   "cleanUrls": true,
   "trailingSlash": false,
