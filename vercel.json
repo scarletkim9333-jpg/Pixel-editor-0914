@@ -112,12 +112,6 @@
   ],
 
 
-  "functions": {
-    "app/api/hello.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
 
   "regions": ["icn1"],
 
