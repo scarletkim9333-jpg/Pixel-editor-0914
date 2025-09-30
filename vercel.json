@@ -1,45 +1,14 @@
 {
-  "version": 2,
-  "name": "pixel-editor",
-  "alias": ["pixel-editor.vercel.app"],
-  "scope": "your-vercel-team",
-  "public": false,
-
-  "build": {
-    "env": {
-      "VITE_DEBUG_MODE": "false",
-      "VITE_FEATURE_ANALYTICS": "true",
-      "VITE_FEATURE_MONITORING": "true",
-      "VITE_FEATURE_ERROR_REPORTING": "true"
-    }
-  },
-
   "buildCommand": "npm run build:prod",
   "outputDirectory": "dist",
-  "installCommand": "npm ci",
-
-  "headers": [
+  "framework": "vite",
+  "rewrites": [
     {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "geolocation=(), microphone=(), camera=()"
-        }
-      ]
-    },
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
     {
       "source": "/assets/(.*)",
       "headers": [
@@ -50,83 +19,21 @@
       ]
     },
     {
-      "source": "/icons/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/examples/(.*)",
-      "headers": [
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
         {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
         }
       ]
     }
-  ],
-
-  "redirects": [
-    {
-      "source": "/home",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/editor",
-      "destination": "/app",
-      "permanent": true
-    }
-  ],
-
-  "rewrites": [
-    {
-      "source": "/share/:shareCode",
-      "destination": "/share/:shareCode"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "https://your-backend-api.com/api/$1"
-    }
-  ],
-
-  "routes": [
-    {
-      "src": "/sw.js",
-      "headers": {
-        "Cache-Control": "public, max-age=0, must-revalidate"
-      }
-    },
-    {
-      "src": "/manifest.json",
-      "headers": {
-        "Cache-Control": "public, max-age=86400"
-      }
-    }
-  ],
-
-  "functions": {
-    "app/api/hello.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
-
-  "regions": ["icn1"],
-
-  "framework": "vite",
-
-  "env": {
-    "VITE_VERCEL_ENV": "@vercel-env"
-  },
-
-  "cleanUrls": true,
-  "trailingSlash": false,
-
-  "github": {
-    "enabled": false
-  }
+  ]
 }

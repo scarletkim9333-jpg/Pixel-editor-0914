@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { XMarkIcon, Cog6ToothIcon, SparklesIcon, CurrencyDollarIcon, GlobeAltIcon, LockClosedIcon, CheckCircleIcon, PencilIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 import { LanguageProvider, useTranslations } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -37,7 +36,6 @@ const StatusDot: React.FC<{ color: string; className?: string }> = ({ color, cla
 );
 
 const NewLayoutAppContent: React.FC = () => {
-  const navigate = useNavigate();
   const { t, language, toggleLanguage } = useTranslations();
   const { user, signInWithGoogle, signOut } = useAuth();
   const { balance, refreshBalance, useTokens: useTokensFunction } = useTokens();
@@ -620,7 +618,7 @@ const NewLayoutAppContent: React.FC = () => {
           <div className="flex items-center justify-between h-16">
             {/* 로고 영역 */}
             <button
-              onClick={() => navigate('/')}
+              onClick={() => window.location.href = '/'}
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer group"
               title="홈으로 이동"
             >
